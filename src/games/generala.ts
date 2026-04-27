@@ -79,6 +79,19 @@ export function getCurrentRound(players: Player[]): number {
   return Math.min(minFilled + 1, CATEGORIES.length);
 }
 
+/**
+ * Returns the index of the player whose turn it is.
+ * Rule: the player with the fewest scored cells goes next.
+ * Ties are broken left-to-right (lowest index first).
+ * This is always computed from current scores — no stored index needed.
+ */
+export function computeCurrentPlayerIndex(players: Player[]): number {
+  if (players.length === 0) return 0;
+  const counts = players.map(p => Object.keys(p.scores).length);
+  const min = Math.min(...counts);
+  return counts.findIndex(c => c === min);
+}
+
 export function getPlayerRanks(players: Player[]): Map<string, number> {
   const sorted = [...players].sort((a, b) => getTotal(b) - getTotal(a));
   const rankMap = new Map<string, number>();

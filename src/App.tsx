@@ -9,7 +9,7 @@ import { HistoryScreen } from './components/HistoryScreen';
 import { ThemeToggle } from './components/ThemeToggle';
 import type { Player, CategoryId, ScoreEntry, GameState } from './types/game';
 import type { GameRecord, PlayerRecord } from './types/history';
-import { isGameComplete, getWinner, getTotal } from './games/generala';
+import { isGameComplete, getWinner, getTotal, computeCurrentPlayerIndex } from './games/generala';
 
 function buildRecord(state: GameState): GameRecord {
   const finishedAt = new Date().toISOString();
@@ -76,8 +76,6 @@ function App() {
   const handleWin = (winnerId: string, winReason: 'generalaServida') =>
     dispatch({ type: 'SET_WINNER', winnerId, winReason });
 
-  const handleAdvanceTurn      = () => dispatch({ type: 'ADVANCE_TURN' });
-  const handleRollbackTurnTo   = (playerId: string) => dispatch({ type: 'ROLLBACK_TURN_TO', playerId });
   const handleReorderPlayers = (players: Player[]) => dispatch({ type: 'REORDER_PLAYERS', players });
   const handleDisableTurnOrder = () => dispatch({ type: 'DISABLE_TURN_ORDER' });
 
@@ -145,14 +143,12 @@ function App() {
         ) : state.phase === 'playing' ? (
           <Scoreboard
             players={state.players}
-            currentPlayerIndex={state.currentPlayerIndex}
+            currentPlayerIndex={computeCurrentPlayerIndex(state.players)}
             turnOrderEnabled={state.turnOrderEnabled}
             isEditMode={isEditMode}
             onScore={handleScore}
             onDeleteScore={handleDeleteScore}
-            onRollbackTurnTo={handleRollbackTurnTo}
             onWin={handleWin}
-            onAdvanceTurn={handleAdvanceTurn}
             onReorderPlayers={handleReorderPlayers}
             onDisableTurnOrder={handleDisableTurnOrder}
           />

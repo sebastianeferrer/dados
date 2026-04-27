@@ -348,7 +348,7 @@ html, body {
 
 .score-cell.filled    { background: var(--cell-filled); }
 .score-cell.served    { background: var(--cell-served); color: var(--success); }
-.score-cell.scratched { background: var(--cell-filled); color: var(--text-muted); }
+.score-cell.scratched { background: var(--cell-filled); color: var(--text-primary); }
 .score-cell.locked   { background: var(--cell-locked); color: var(--text-muted); cursor: pointer; }
 .score-cell.blocked  { background: var(--cell-blocked); color: var(--text-muted); cursor: pointer; }
 .score-cell.filled   { cursor: pointer; }
@@ -794,6 +794,13 @@ html, body {
 
 /* ── Modal extras ──────────────────────────────────────────── */
 .modal-die { display: flex; align-items: center; }
+
+.scratch-blocked {
+  color: var(--danger);
+  font-size: 0.8125rem;
+  text-align: center;
+  padding: 6px 0;
+}
 
 .modal-category {
   display: flex;

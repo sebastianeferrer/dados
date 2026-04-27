@@ -21,7 +21,6 @@ export interface GameState {
   players: Player[];
   winnerId?: string;
   winReason?: 'generalaServida' | 'highScore';
-  currentPlayerIndex: number;
   turnOrderEnabled: boolean;
   gameId: string;
   startedAt: string;

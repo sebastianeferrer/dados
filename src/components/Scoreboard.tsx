@@ -18,9 +18,7 @@ interface Props {
   isEditMode: boolean;
   onScore: (playerId: string, categoryId: CategoryId, entry: ScoreEntry) => void;
   onDeleteScore: (playerId: string, categoryId: CategoryId) => void;
-  onRollbackTurnTo: (playerId: string) => void;
   onWin: (winnerId: string, winReason: 'generalaServida') => void;
-  onAdvanceTurn: () => void;
   onReorderPlayers: (players: Player[]) => void;
   onDisableTurnOrder: () => void;
 }
@@ -41,7 +39,7 @@ function getLeadingIds(players: Player[]): string[] {
 
 export function Scoreboard({
   players, currentPlayerIndex, turnOrderEnabled, isEditMode,
-  onScore, onDeleteScore, onRollbackTurnTo, onWin, onAdvanceTurn, onReorderPlayers, onDisableTurnOrder,
+  onScore, onDeleteScore, onWin, onReorderPlayers, onDisableTurnOrder,
 }: Props) {
   const [dialog, setDialog] = useState<LocalDialog>(null);
   const [toast,  setToast]  = useState<{ msg: string; id: number } | null>(null);
@@ -51,6 +49,14 @@ export function Scoreboard({
     const t = setTimeout(() => setToast(null), 2500);
     return () => clearTimeout(t);
   }, [toast?.id]);
+
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && dialog) setDialog(null);
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [dialog]);
 
   const showToast = (msg: string) => setToast({ msg, id: Date.now() });
 
@@ -86,7 +92,6 @@ export function Scoreboard({
     if (!isEdit) {
       const cat = CATEGORIES.find(c => c.id === categoryId)!;
       if (entry.served && cat.winOnServed) { onWin(playerId, 'generalaServida'); setDialog(null); return; }
-      if (turnOrderEnabled) onAdvanceTurn();
     }
     setDialog(null);
   };
@@ -95,10 +100,7 @@ export function Scoreboard({
     if (dialog?.kind !== 'score') return;
     const { playerId, categoryId } = dialog;
     onDeleteScore(playerId, categoryId);
-    // Revert turn to this player so they can re-score in the right cell
-    if (!isEditMode && turnOrderEnabled) {
-      onRollbackTurnTo(playerId);
-    }
+    // El turno se recalcula automáticamente basado en celdas completas
     setDialog(null);
   };
 

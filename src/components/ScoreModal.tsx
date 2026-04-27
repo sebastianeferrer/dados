@@ -29,6 +29,10 @@ export function ScoreModal({
   const options = getNumberOptions(category.id);
   const isNumber = category.type === 'number';
 
+  // Generala solo se puede tachar si Generala Doble ya fue anotada o tachada
+  const canScratch =
+    category.id !== 'generala' || player.scores['generalaDoble'] !== undefined;
+
   return (
     <div className="modal-overlay" onClick={onCancel}>
       <div className="modal" onClick={e => e.stopPropagation()}>
@@ -88,9 +92,15 @@ export function ScoreModal({
                   Normal <span className="score-preview">{category.baseScore} pts</span>
                 </button>
               </div>
-              <button className="btn btn-scratch" onClick={() => score(0, false, true)}>
-                Tachar <span className="score-preview">0 pts</span>
-              </button>
+              {canScratch ? (
+                <button className="btn btn-scratch" onClick={() => score(0, false, true)}>
+                  Tachar <span className="score-preview">0 pts</span>
+                </button>
+              ) : (
+                <p className="modal-hint scratch-blocked">
+                  Para tachar Generala primero tachá Generala Doble.
+                </p>
+              )}
             </>
           )}
 
