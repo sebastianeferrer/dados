@@ -1,5 +1,5 @@
 import { useReducer, useEffect } from 'react';
-import { GameState, Player, CategoryId, ScoreEntry } from '../types/game';
+import type { GameState, Player, CategoryId, ScoreEntry } from '../types/game';
 
 const STORAGE_KEY = 'dados-game-state';
 

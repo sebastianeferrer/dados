@@ -1,4 +1,4 @@
-import { CategoryId, Player, ScoreEntry } from '../types/game';
+import type { CategoryId, Player, ScoreEntry } from '../types/game';
 
 export interface CategoryDef {
   id: CategoryId;

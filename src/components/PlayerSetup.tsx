@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Player } from '../types/game';
+import type { Player } from '../types/game';
 
 interface Props {
   onStart: (players: Player[]) => void;

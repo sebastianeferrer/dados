@@ -1,4 +1,4 @@
-import { Player } from '../types/game';
+import type { Player } from '../types/game';
 import { getTotal } from '../games/generala';
 
 interface Props {

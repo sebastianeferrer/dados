@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Player, ScoreEntry } from '../types/game';
-import { CategoryDef } from '../games/generala';
+import type { Player, ScoreEntry } from '../types/game';
+import type { CategoryDef } from '../games/generala';
 
 interface Props {
   player: Player;

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Player, CategoryId, ScoreEntry } from '../types/game';
+import type { Player, CategoryId, ScoreEntry } from '../types/game';
 import {
   CATEGORIES,
   getTotal,
