@@ -5,19 +5,49 @@ import {
   getTotal,
   isCategoryAvailable,
   isCategoryPermanentlyBlocked,
-  getCurrentRound,
   getPlayerRanks,
 } from '../games/generala';
 import { ScoreModal } from './ScoreModal';
+import { ReorderDialog } from './ReorderDialog';
 
 interface Props {
   players: Player[];
+  currentPlayerIndex: number;
+  turnOrderEnabled: boolean;
+  isEditMode: boolean;
   onScore: (playerId: string, categoryId: CategoryId, entry: ScoreEntry) => void;
   onWin: (winnerId: string, winReason: 'generalaServida') => void;
+  onAdvanceTurn: () => void;
+  onReorderPlayers: (players: Player[]) => void;
+  onDisableTurnOrder: () => void;
 }
 
-export function Scoreboard({ players, onScore, onWin }: Props) {
-  const [modal, setModal] = useState<{ playerId: string; categoryId: CategoryId } | null>(null);
+type LocalDialog =
+  | null
+  | { kind: 'score'; playerId: string; categoryId: CategoryId; isEdit: boolean }
+  | { kind: 'confirmEdit'; playerId: string; categoryId: CategoryId }
+  | { kind: 'outOfOrder'; pendingPlayerId: string; pendingCategoryId: CategoryId }
+  | { kind: 'reorder' };
+
+function getLeadingIds(players: Player[]): string[] {
+  if (players.length === 0) return [];
+  const max = Math.max(...players.map(getTotal));
+  if (max === 0) return [];
+  return players.filter(p => getTotal(p) === max).map(p => p.id);
+}
+
+export function Scoreboard({
+  players,
+  currentPlayerIndex,
+  turnOrderEnabled,
+  isEditMode,
+  onScore,
+  onWin,
+  onAdvanceTurn,
+  onReorderPlayers,
+  onDisableTurnOrder,
+}: Props) {
+  const [dialog, setDialog] = useState<LocalDialog>(null);
   const [toast, setToast] = useState<{ msg: string; id: number } | null>(null);
 
   useEffect(() => {
@@ -28,11 +58,14 @@ export function Scoreboard({ players, onScore, onWin }: Props) {
 
   const showToast = (msg: string) => setToast({ msg, id: Date.now() });
 
+  const openScoreModal = (playerId: string, categoryId: CategoryId, isEdit: boolean) =>
+    setDialog({ kind: 'score', playerId, categoryId, isEdit });
+
   const handleCellClick = (playerId: string, categoryId: CategoryId) => {
     const player = players.find(p => p.id === playerId)!;
 
     if (player.scores[categoryId] !== undefined) {
-      showToast('Ya anotado — los valores no se pueden modificar.');
+      setDialog({ kind: 'confirmEdit', playerId, categoryId });
       return;
     }
     if (isCategoryPermanentlyBlocked(categoryId, player)) {
@@ -43,46 +76,85 @@ export function Scoreboard({ players, onScore, onWin }: Props) {
       showToast('Primero anotá Generala para habilitar Generala Doble.');
       return;
     }
-
-    setModal({ playerId, categoryId });
-  };
-
-  const handleConfirm = (entry: ScoreEntry) => {
-    if (!modal) return;
-    onScore(modal.playerId, modal.categoryId, entry);
-    if (entry.served) {
-      const cat = CATEGORIES.find(c => c.id === modal.categoryId)!;
-      if (cat.winOnServed) onWin(modal.playerId, 'generalaServida');
+    if (!isEditMode && turnOrderEnabled && players[currentPlayerIndex]?.id !== playerId) {
+      setDialog({ kind: 'outOfOrder', pendingPlayerId: playerId, pendingCategoryId: categoryId });
+      return;
     }
-    setModal(null);
+
+    openScoreModal(playerId, categoryId, false);
   };
 
-  const currentRound = getCurrentRound(players);
-  const rankMap = getPlayerRanks(players);
+  const handleScoreConfirm = (entry: ScoreEntry) => {
+    if (dialog?.kind !== 'score') return;
+    const { playerId, categoryId, isEdit } = dialog;
 
-  const modalPlayer = modal ? players.find(p => p.id === modal.playerId) : null;
-  const modalCategory = modal ? CATEGORIES.find(c => c.id === modal.categoryId) : null;
+    onScore(playerId, categoryId, entry);
+
+    if (!isEdit) {
+      const cat = CATEGORIES.find(c => c.id === categoryId)!;
+      if (entry.served && cat.winOnServed) {
+        onWin(playerId, 'generalaServida');
+        setDialog(null);
+        return;
+      }
+      if (turnOrderEnabled) onAdvanceTurn();
+    }
+
+    setDialog(null);
+  };
+
+  const rankMap = getPlayerRanks(players);
+  const leadingIds = getLeadingIds(players);
+  const currentPlayer = players[currentPlayerIndex];
+
+  const d = dialog;
+  const modalPlayer    = d?.kind === 'score'       ? players.find(p => p.id === d.playerId)          : null;
+  const modalCat       = d?.kind === 'score'       ? CATEGORIES.find(c => c.id === d.categoryId)     : null;
+  const editPlayer     = d?.kind === 'confirmEdit' ? players.find(p => p.id === d.playerId)          : null;
+  const editCat        = d?.kind === 'confirmEdit' ? CATEGORIES.find(c => c.id === d.categoryId)     : null;
+  const oooScorer      = d?.kind === 'outOfOrder'  ? players.find(p => p.id === d.pendingPlayerId)   : null;
 
   return (
     <div className="scoreboard-wrapper">
+      {/* ── Toolbar ── */}
       <div className="sb-toolbar">
-        <span className="sb-round">Ronda {currentRound} de {CATEGORIES.length}</span>
-        <span className="sb-hint">Tocá una celda para anotar</span>
+        <span className="sb-turn">
+          {isEditMode
+            ? 'Modo edición'
+            : turnOrderEnabled && currentPlayer
+            ? <>Turno de <strong>{currentPlayer.name}</strong></>
+            : 'Orden libre'}
+        </span>
+        <button className="btn-toolbar" onClick={() => setDialog({ kind: 'reorder' })}>
+          Cambiar orden
+        </button>
       </div>
 
+      {/* ── Table ── */}
       <div className="table-container">
         <table className="scoreboard">
           <thead>
             <tr>
               <th className="col-category col-header">Categoría</th>
-              {players.map(p => {
+              {players.map((p, idx) => {
+                const isLeading = leadingIds.includes(p.id);
+                const isCurrent = !isEditMode && turnOrderEnabled && idx === currentPlayerIndex;
+                const filled = Object.keys(p.scores).length;
                 const rank = rankMap.get(p.id) ?? 1;
                 const total = getTotal(p);
                 return (
-                  <th key={p.id} className="col-player col-header" title={p.name}>
+                  <th
+                    key={p.id}
+                    className={[
+                      'col-player col-header',
+                      isLeading  ? 'leading-player' : '',
+                      isCurrent  ? 'current-turn'   : '',
+                    ].filter(Boolean).join(' ')}
+                    title={p.name}
+                  >
                     <div className="player-header-content">
                       <span className="player-header-name">{p.name}</span>
-                      <span className="player-header-rank">{rank}° · {total} pts</span>
+                      <span className="player-header-meta">{rank}° · {filled}/{CATEGORIES.length} · {total} pts</span>
                     </div>
                   </th>
                 );
@@ -98,15 +170,17 @@ export function Scoreboard({ players, onScore, onWin }: Props) {
                   const entry = player.scores[cat.id];
                   const filled = entry !== undefined;
                   const blocked = !filled && isCategoryPermanentlyBlocked(cat.id, player);
-                  const locked = !filled && !blocked && !isCategoryAvailable(cat.id, player);
+                  const locked  = !filled && !blocked && !isCategoryAvailable(cat.id, player);
 
-                  let cellClass = 'score-cell';
-                  if (filled && entry.scratched)     cellClass += ' scratched';
-                  else if (filled && entry.served)   cellClass += ' served';
-                  else if (filled)                   cellClass += ' filled';
-                  else if (blocked)                  cellClass += ' blocked';
-                  else if (locked)                   cellClass += ' locked';
-                  else                               cellClass += ' available';
+                  const cellClass = [
+                    'score-cell',
+                    filled && entry.scratched ? 'scratched'
+                    : filled && entry.served  ? 'served'
+                    : filled                  ? 'filled'
+                    : blocked                 ? 'blocked'
+                    : locked                  ? 'locked'
+                    :                          'available',
+                  ].join(' ');
 
                   return (
                     <td
@@ -140,18 +214,94 @@ export function Scoreboard({ players, onScore, onWin }: Props) {
         </table>
       </div>
 
-      {toast && (
-        <div className="toast" key={toast.id}>{toast.msg}</div>
-      )}
-
-      {modal && modalPlayer && modalCategory && (
+      {/* ── Score modal ── */}
+      {d?.kind === 'score' && modalPlayer && modalCat && (
         <ScoreModal
           player={modalPlayer}
-          category={modalCategory}
-          onConfirm={handleConfirm}
-          onCancel={() => setModal(null)}
+          category={modalCat}
+          onConfirm={handleScoreConfirm}
+          onCancel={() => setDialog(null)}
         />
       )}
+
+      {/* ── Confirm edit ── */}
+      {d?.kind === 'confirmEdit' && editPlayer && editCat && (
+        <div className="modal-overlay" onClick={() => setDialog(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-category">Modificar puntaje</h3>
+            </div>
+            <p className="confirm-text">
+              ¿Querés cambiar <strong>{editCat.label}</strong> de <strong>{editPlayer.name}</strong>?
+              <br />
+              <span className="confirm-subtext">El valor anterior se va a reemplazar.</span>
+            </p>
+            <div className="confirm-actions">
+              <button
+                className="btn btn-primary"
+                autoFocus
+                onClick={() => openScoreModal(d.playerId, d.categoryId, true)}
+              >
+                Sí, modificar
+              </button>
+              <button className="btn btn-ghost" onClick={() => setDialog(null)}>
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Out of order ── */}
+      {d?.kind === 'outOfOrder' && (
+        <div className="modal-overlay" onClick={() => setDialog(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-category">Orden de turno</h3>
+            </div>
+            <p className="confirm-text">
+              Es el turno de <strong>{currentPlayer?.name}</strong>, pero estás anotando para <strong>{oooScorer?.name}</strong>.
+            </p>
+            <div className="combination-options">
+              <button
+                className="btn btn-normal"
+                autoFocus
+                onClick={() => openScoreModal(d.pendingPlayerId, d.pendingCategoryId, false)}
+              >
+                Continuar igual
+              </button>
+              <button
+                className="btn btn-normal"
+                onClick={() => {
+                  onDisableTurnOrder();
+                  openScoreModal(d.pendingPlayerId, d.pendingCategoryId, false);
+                }}
+              >
+                Ignorar el contador de turno
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setDialog({ kind: 'reorder' })}
+              >
+                Cambiar el orden
+              </button>
+            </div>
+            <button className="modal-cancel" onClick={() => setDialog(null)}>Cancelar</button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Reorder dialog ── */}
+      {d?.kind === 'reorder' && (
+        <ReorderDialog
+          players={players}
+          onConfirm={reordered => { onReorderPlayers(reordered); setDialog(null); }}
+          onCancel={() => setDialog(null)}
+        />
+      )}
+
+      {/* ── Toast ── */}
+      {toast && <div className="toast" key={toast.id}>{toast.msg}</div>}
     </div>
   );
 }

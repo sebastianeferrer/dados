@@ -298,11 +298,26 @@ html, body {
   max-width: 110px;
 }
 
-.player-header-rank {
-  font-size: 0.6875rem;
+.player-header-meta {
+  font-size: 0.625rem;
   font-weight: 400;
   color: var(--text-secondary);
   white-space: nowrap;
+}
+
+/* Leading player → green header */
+.col-player.col-header.leading-player {
+  background: var(--cell-served);
+  color: var(--success);
+}
+.col-player.col-header.leading-player .player-header-meta {
+  color: var(--success);
+  opacity: 0.8;
+}
+
+/* Current turn → blue bottom border */
+.col-player.col-header.current-turn {
+  border-bottom: 3px solid var(--accent);
 }
 
 .col-label {
@@ -454,6 +469,86 @@ html, body {
 }
 .modal-cancel:hover { color: var(--text-secondary); }
 
+/* ── Confirm / out-of-order dialogs ───────────────────────── */
+.confirm-text {
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+
+.confirm-subtext {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.confirm-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ── Reorder dialog ────────────────────────────────────────── */
+.reorder-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.reorder-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.reorder-pos {
+  width: 18px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.reorder-name {
+  flex: 1;
+  font-size: 0.9375rem;
+  font-weight: 500;
+}
+
+.reorder-arrows {
+  display: flex;
+  gap: 4px;
+}
+
+.reorder-btn {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-family: inherit;
+  transition: background 0.12s, color 0.12s;
+}
+.reorder-btn:hover:not(:disabled) {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.reorder-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
 /* ── Winner screen ─────────────────────────────────────────── */
 .winner-screen {
   display: flex;
@@ -526,6 +621,13 @@ html, body {
 .final-name  { flex: 1; }
 .final-total { font-variant-numeric: tabular-nums; }
 
+.winner-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
 /* ── Scoreboard toolbar ────────────────────────────────────── */
 .sb-toolbar {
   display: flex;
@@ -535,18 +637,33 @@ html, body {
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+  gap: 12px;
 }
 
-.sb-round {
-  font-size: 0.8125rem;
-  font-weight: 600;
+.sb-turn {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.sb-turn strong {
   color: var(--text-primary);
+  font-weight: 600;
 }
 
-.sb-hint {
+.btn-toolbar {
   font-size: 0.75rem;
-  color: var(--text-muted);
+  font-weight: 500;
+  font-family: inherit;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 4px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s;
 }
+.btn-toolbar:hover { background: var(--surface); color: var(--text-primary); }
 
 /* ── Number option buttons ─────────────────────────────────── */
 .number-options {

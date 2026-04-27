@@ -6,9 +6,18 @@ interface Props {
   winnerId?: string;
   winReason?: 'generalaServida' | 'highScore';
   onNewGame: () => void;
+  onReopenGame: () => void;
+  onRestartSamePlayers: () => void;
 }
 
-export function WinnerScreen({ players, winnerId, winReason, onNewGame }: Props) {
+export function WinnerScreen({
+  players,
+  winnerId,
+  winReason,
+  onNewGame,
+  onReopenGame,
+  onRestartSamePlayers,
+}: Props) {
   const winner = players.find(p => p.id === winnerId);
   const sorted = [...players].sort((a, b) => getTotal(b) - getTotal(a));
   const topScore = getTotal(sorted[0]);
@@ -36,7 +45,7 @@ export function WinnerScreen({ players, winnerId, winReason, onNewGame }: Props)
         )}
 
         <div className="final-scores">
-          <p className="final-scores-title">Resultados</p>
+          <p className="final-scores-title">Resultados finales</p>
           {sorted.map((p, i) => (
             <div
               key={p.id}
@@ -49,9 +58,17 @@ export function WinnerScreen({ players, winnerId, winReason, onNewGame }: Props)
           ))}
         </div>
 
-        <button className="btn btn-primary" onClick={onNewGame}>
-          Nueva partida
-        </button>
+        <div className="winner-actions">
+          <button className="btn btn-primary" onClick={onRestartSamePlayers}>
+            Repetir con los mismos jugadores
+          </button>
+          <button className="btn btn-secondary" onClick={onReopenGame}>
+            Ver y editar puntajes
+          </button>
+          <button className="btn btn-ghost" onClick={onNewGame}>
+            Nueva partida
+          </button>
+        </div>
       </div>
     </div>
   );
