@@ -9,15 +9,16 @@ export interface CategoryDef {
   winOnServed: boolean;
   maxInput?: number;
   requiresScored?: CategoryId;
+  dieFace?: 1 | 2 | 3 | 4 | 5 | 6;
 }
 
 export const CATEGORIES: CategoryDef[] = [
-  { id: 'ones',          label: 'Unos',          type: 'number',      baseScore: 0,   servedBonus: 0, winOnServed: false, maxInput: 5   },
-  { id: 'twos',          label: 'Doses',          type: 'number',      baseScore: 0,   servedBonus: 0, winOnServed: false, maxInput: 10  },
-  { id: 'threes',        label: 'Treses',         type: 'number',      baseScore: 0,   servedBonus: 0, winOnServed: false, maxInput: 15  },
-  { id: 'fours',         label: 'Cuatros',        type: 'number',      baseScore: 0,   servedBonus: 0, winOnServed: false, maxInput: 20  },
-  { id: 'fives',         label: 'Cincos',         type: 'number',      baseScore: 0,   servedBonus: 0, winOnServed: false, maxInput: 25  },
-  { id: 'sixes',         label: 'Seises',         type: 'number',      baseScore: 0,   servedBonus: 0, winOnServed: false, maxInput: 30  },
+  { id: 'ones',   label: 'Unos',   dieFace: 1, type: 'number', baseScore: 0, servedBonus: 0, winOnServed: false, maxInput: 5  },
+  { id: 'twos',   label: 'Doses',  dieFace: 2, type: 'number', baseScore: 0, servedBonus: 0, winOnServed: false, maxInput: 10 },
+  { id: 'threes', label: 'Treses', dieFace: 3, type: 'number', baseScore: 0, servedBonus: 0, winOnServed: false, maxInput: 15 },
+  { id: 'fours',  label: 'Cuatros',dieFace: 4, type: 'number', baseScore: 0, servedBonus: 0, winOnServed: false, maxInput: 20 },
+  { id: 'fives',  label: 'Cincos', dieFace: 5, type: 'number', baseScore: 0, servedBonus: 0, winOnServed: false, maxInput: 25 },
+  { id: 'sixes',  label: 'Seises', dieFace: 6, type: 'number', baseScore: 0, servedBonus: 0, winOnServed: false, maxInput: 30 },
   { id: 'escalera',      label: 'Escalera',       type: 'combination', baseScore: 20,  servedBonus: 5, winOnServed: false               },
   { id: 'full',          label: 'Full',           type: 'combination', baseScore: 30,  servedBonus: 5, winOnServed: false               },
   { id: 'poker',         label: 'Poker',          type: 'combination', baseScore: 40,  servedBonus: 5, winOnServed: false               },
@@ -47,13 +48,15 @@ export function isCategoryPermanentlyBlocked(categoryId: CategoryId, player: Pla
 }
 
 export function isGameComplete(players: Player[]): boolean {
-  return players.every(player =>
-    CATEGORIES.every(cat => {
+  if (players.length === 0) return false;
+  return players.every(player => {
+    // A player who hasn't scored anything yet is never complete
+    if (Object.keys(player.scores).length === 0) return false;
+    return CATEGORIES.every(cat => {
       if (player.scores[cat.id] !== undefined) return true;
-      // Permanently blocked cells count as complete
       return isCategoryPermanentlyBlocked(cat.id, player);
-    })
-  );
+    });
+  });
 }
 
 export function getWinner(players: Player[]): Player {

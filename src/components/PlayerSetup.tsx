@@ -2,28 +2,21 @@ import { useState } from 'react';
 import type { Player } from '../types/game';
 
 interface Props {
-  onStart: (players: Player[]) => void;
+  onStart: (players: Player[], turnOrderEnabled: boolean) => void;
 }
 
 export function PlayerSetup({ onStart }: Props) {
   const [names, setNames] = useState<string[]>(['', '']);
+  const [turnControl, setTurnControl] = useState(true);
 
-  const addPlayer = () => {
-    if (names.length < 10) setNames([...names, '']);
-  };
+  const addPlayer    = () => { if (names.length < 10) setNames([...names, '']); };
+  const removePlayer = (i: number) => { if (names.length > 2) setNames(names.filter((_, j) => j !== i)); };
+  const updateName   = (i: number, v: string) => setNames(names.map((n, j) => j === i ? v : n));
 
-  const removePlayer = (index: number) => {
-    if (names.length > 2) setNames(names.filter((_, i) => i !== index));
-  };
-
-  const updateName = (index: number, value: string) => {
-    setNames(names.map((n, i) => (i === index ? value : n)));
-  };
-
-  const trimmed = names.map(n => n.trim());
-  const allFilled = trimmed.every(n => n.length > 0);
+  const trimmed      = names.map(n => n.trim());
+  const allFilled    = trimmed.every(n => n.length > 0);
   const noDuplicates = new Set(trimmed.map(n => n.toLowerCase())).size === names.length;
-  const canStart = allFilled && noDuplicates;
+  const canStart     = allFilled && noDuplicates;
 
   const handleStart = () => {
     if (!canStart) return;
@@ -32,7 +25,7 @@ export function PlayerSetup({ onStart }: Props) {
       name,
       scores: {},
     }));
-    onStart(players);
+    onStart(players, turnControl);
   };
 
   return (
@@ -55,11 +48,7 @@ export function PlayerSetup({ onStart }: Props) {
               autoFocus={i === 0}
             />
             {names.length > 2 && (
-              <button
-                className="remove-btn"
-                onClick={() => removePlayer(i)}
-                aria-label="Eliminar jugador"
-              >
+              <button className="remove-btn" onClick={() => removePlayer(i)} aria-label="Eliminar">
                 ×
               </button>
             )}
@@ -70,6 +59,18 @@ export function PlayerSetup({ onStart }: Props) {
       {!noDuplicates && allFilled && (
         <p className="setup-error">Los nombres no pueden repetirse.</p>
       )}
+
+      <label className="setup-checkbox">
+        <input
+          type="checkbox"
+          checked={turnControl}
+          onChange={e => setTurnControl(e.target.checked)}
+        />
+        <span>Control de turno</span>
+        <span className="setup-checkbox-hint">
+          — detecta y avisa si se anota fuera de orden
+        </span>
+      </label>
 
       <div className="setup-actions">
         {names.length < 10 && (

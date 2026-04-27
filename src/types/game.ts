@@ -23,4 +23,6 @@ export interface GameState {
   winReason?: 'generalaServida' | 'highScore';
   currentPlayerIndex: number;
   turnOrderEnabled: boolean;
+  gameId: string;
+  startedAt: string;
 }

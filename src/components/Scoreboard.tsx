@@ -9,6 +9,7 @@ import {
 } from '../games/generala';
 import { ScoreModal } from './ScoreModal';
 import { ReorderDialog } from './ReorderDialog';
+import { DieIcon } from './DieIcon';
 
 interface Props {
   players: Player[];
@@ -16,6 +17,8 @@ interface Props {
   turnOrderEnabled: boolean;
   isEditMode: boolean;
   onScore: (playerId: string, categoryId: CategoryId, entry: ScoreEntry) => void;
+  onDeleteScore: (playerId: string, categoryId: CategoryId) => void;
+  onRollbackTurnTo: (playerId: string) => void;
   onWin: (winnerId: string, winReason: 'generalaServida') => void;
   onAdvanceTurn: () => void;
   onReorderPlayers: (players: Player[]) => void;
@@ -24,31 +27,24 @@ interface Props {
 
 type LocalDialog =
   | null
-  | { kind: 'score'; playerId: string; categoryId: CategoryId; isEdit: boolean }
+  | { kind: 'score'; playerId: string; categoryId: CategoryId; isEdit: boolean; lockedToScratchOnly: boolean }
   | { kind: 'confirmEdit'; playerId: string; categoryId: CategoryId }
   | { kind: 'outOfOrder'; pendingPlayerId: string; pendingCategoryId: CategoryId }
   | { kind: 'reorder' };
 
 function getLeadingIds(players: Player[]): string[] {
-  if (players.length === 0) return [];
+  if (!players.length) return [];
   const max = Math.max(...players.map(getTotal));
   if (max === 0) return [];
   return players.filter(p => getTotal(p) === max).map(p => p.id);
 }
 
 export function Scoreboard({
-  players,
-  currentPlayerIndex,
-  turnOrderEnabled,
-  isEditMode,
-  onScore,
-  onWin,
-  onAdvanceTurn,
-  onReorderPlayers,
-  onDisableTurnOrder,
+  players, currentPlayerIndex, turnOrderEnabled, isEditMode,
+  onScore, onDeleteScore, onRollbackTurnTo, onWin, onAdvanceTurn, onReorderPlayers, onDisableTurnOrder,
 }: Props) {
   const [dialog, setDialog] = useState<LocalDialog>(null);
-  const [toast, setToast] = useState<{ msg: string; id: number } | null>(null);
+  const [toast,  setToast]  = useState<{ msg: string; id: number } | null>(null);
 
   useEffect(() => {
     if (!toast) return;
@@ -58,8 +54,9 @@ export function Scoreboard({
 
   const showToast = (msg: string) => setToast({ msg, id: Date.now() });
 
-  const openScoreModal = (playerId: string, categoryId: CategoryId, isEdit: boolean) =>
-    setDialog({ kind: 'score', playerId, categoryId, isEdit });
+  const openScoreModal = (
+    playerId: string, categoryId: CategoryId, isEdit: boolean, lockedToScratchOnly = false
+  ) => setDialog({ kind: 'score', playerId, categoryId, isEdit, lockedToScratchOnly });
 
   const handleCellClick = (playerId: string, categoryId: CategoryId) => {
     const player = players.find(p => p.id === playerId)!;
@@ -72,53 +69,55 @@ export function Scoreboard({
       showToast('No disponible — Generala fue tachada.');
       return;
     }
-    if (!isCategoryAvailable(categoryId, player)) {
-      showToast('Primero anotá Generala para habilitar Generala Doble.');
-      return;
-    }
     if (!isEditMode && turnOrderEnabled && players[currentPlayerIndex]?.id !== playerId) {
       setDialog({ kind: 'outOfOrder', pendingPlayerId: playerId, pendingCategoryId: categoryId });
       return;
     }
 
-    openScoreModal(playerId, categoryId, false);
+    // Allow locked cells (e.g. Generala Doble before Generala) — only show Tachar
+    const lockedToScratchOnly = !isCategoryAvailable(categoryId, player);
+    openScoreModal(playerId, categoryId, false, lockedToScratchOnly);
   };
 
   const handleScoreConfirm = (entry: ScoreEntry) => {
     if (dialog?.kind !== 'score') return;
     const { playerId, categoryId, isEdit } = dialog;
-
     onScore(playerId, categoryId, entry);
-
     if (!isEdit) {
       const cat = CATEGORIES.find(c => c.id === categoryId)!;
-      if (entry.served && cat.winOnServed) {
-        onWin(playerId, 'generalaServida');
-        setDialog(null);
-        return;
-      }
+      if (entry.served && cat.winOnServed) { onWin(playerId, 'generalaServida'); setDialog(null); return; }
       if (turnOrderEnabled) onAdvanceTurn();
     }
-
     setDialog(null);
   };
 
-  const rankMap = getPlayerRanks(players);
+  const handleDeleteScore = () => {
+    if (dialog?.kind !== 'score') return;
+    const { playerId, categoryId } = dialog;
+    onDeleteScore(playerId, categoryId);
+    // Revert turn to this player so they can re-score in the right cell
+    if (!isEditMode && turnOrderEnabled) {
+      onRollbackTurnTo(playerId);
+    }
+    setDialog(null);
+  };
+
+  const rankMap    = getPlayerRanks(players);
   const leadingIds = getLeadingIds(players);
   const currentPlayer = players[currentPlayerIndex];
 
   const d = dialog;
-  const modalPlayer    = d?.kind === 'score'       ? players.find(p => p.id === d.playerId)          : null;
-  const modalCat       = d?.kind === 'score'       ? CATEGORIES.find(c => c.id === d.categoryId)     : null;
-  const editPlayer     = d?.kind === 'confirmEdit' ? players.find(p => p.id === d.playerId)          : null;
-  const editCat        = d?.kind === 'confirmEdit' ? CATEGORIES.find(c => c.id === d.categoryId)     : null;
-  const oooScorer      = d?.kind === 'outOfOrder'  ? players.find(p => p.id === d.pendingPlayerId)   : null;
+  const modalPlayer  = d?.kind === 'score'       ? players.find(p => p.id === d.playerId)        : null;
+  const modalCat     = d?.kind === 'score'       ? CATEGORIES.find(c => c.id === d.categoryId)   : null;
+  const editPlayer   = d?.kind === 'confirmEdit' ? players.find(p => p.id === d.playerId)        : null;
+  const editCat      = d?.kind === 'confirmEdit' ? CATEGORIES.find(c => c.id === d.categoryId)   : null;
+  const oooScorer    = d?.kind === 'outOfOrder'  ? players.find(p => p.id === d.pendingPlayerId) : null;
 
   return (
     <div className="scoreboard-wrapper">
       {/* ── Toolbar ── */}
       <div className="sb-toolbar">
-        <span className="sb-turn">
+        <span className={`sb-turn${!isEditMode && turnOrderEnabled && currentPlayer ? ' sb-turn-active' : ''}`}>
           {isEditMode
             ? 'Modo edición'
             : turnOrderEnabled && currentPlayer
@@ -140,21 +139,28 @@ export function Scoreboard({
                 const isLeading = leadingIds.includes(p.id);
                 const isCurrent = !isEditMode && turnOrderEnabled && idx === currentPlayerIndex;
                 const filled = Object.keys(p.scores).length;
-                const rank = rankMap.get(p.id) ?? 1;
-                const total = getTotal(p);
+                const rank   = rankMap.get(p.id) ?? 1;
                 return (
                   <th
                     key={p.id}
                     className={[
                       'col-player col-header',
-                      isLeading  ? 'leading-player' : '',
-                      isCurrent  ? 'current-turn'   : '',
+                      isLeading ? 'leading-player' : '',
+                      isCurrent ? 'current-turn'   : '',
                     ].filter(Boolean).join(' ')}
                     title={p.name}
                   >
                     <div className="player-header-content">
-                      <span className="player-header-name">{p.name}</span>
-                      <span className="player-header-meta">{rank}° · {filled}/{CATEGORIES.length} · {total} pts</span>
+                      <span className="player-header-name">
+                        {isLeading && '🏆 '}{p.name}
+                      </span>
+                      <span className="player-header-meta">
+                        {rank}° · {filled}/{CATEGORIES.length}
+                        <span
+                          className="info-tip"
+                          title="N° = posición en el ranking · X/11 = jugadas completadas"
+                        >i</span>
+                      </span>
                     </div>
                   </th>
                 );
@@ -165,10 +171,14 @@ export function Scoreboard({
           <tbody>
             {CATEGORIES.map(cat => (
               <tr key={cat.id}>
-                <td className="col-category col-label">{cat.label}</td>
+                <td className="col-category col-label">
+                  {cat.dieFace
+                    ? <DieIcon face={cat.dieFace} size={20} />
+                    : cat.label}
+                </td>
                 {players.map(player => {
                   const entry = player.scores[cat.id];
-                  const filled = entry !== undefined;
+                  const filled  = entry !== undefined;
                   const blocked = !filled && isCategoryPermanentlyBlocked(cat.id, player);
                   const locked  = !filled && !blocked && !isCategoryAvailable(cat.id, player);
 
@@ -183,14 +193,10 @@ export function Scoreboard({
                   ].join(' ');
 
                   return (
-                    <td
-                      key={player.id}
-                      className={cellClass}
-                      onClick={() => handleCellClick(player.id, cat.id)}
-                    >
+                    <td key={player.id} className={cellClass} onClick={() => handleCellClick(player.id, cat.id)}>
                       {filled && (
                         <span>
-                          {entry.scratched ? '—' : entry.value}
+                          {entry.scratched ? 'X' : entry.value}
                           {!entry.scratched && entry.served && !cat.winOnServed && (
                             <sup className="served-mark">S</sup>
                           )}
@@ -219,7 +225,10 @@ export function Scoreboard({
         <ScoreModal
           player={modalPlayer}
           category={modalCat}
+          isEdit={d.isEdit}
+          lockedToScratchOnly={d.lockedToScratchOnly}
           onConfirm={handleScoreConfirm}
+          onDelete={d.isEdit ? handleDeleteScore : undefined}
           onCancel={() => setDialog(null)}
         />
       )}
@@ -233,20 +242,14 @@ export function Scoreboard({
             </div>
             <p className="confirm-text">
               ¿Querés cambiar <strong>{editCat.label}</strong> de <strong>{editPlayer.name}</strong>?
-              <br />
-              <span className="confirm-subtext">El valor anterior se va a reemplazar.</span>
+              <br /><span className="confirm-subtext">El valor anterior se va a reemplazar o podés borrarlo.</span>
             </p>
             <div className="confirm-actions">
-              <button
-                className="btn btn-primary"
-                autoFocus
-                onClick={() => openScoreModal(d.playerId, d.categoryId, true)}
-              >
+              <button className="btn btn-primary" autoFocus
+                onClick={() => openScoreModal(d.playerId, d.categoryId, true)}>
                 Sí, modificar
               </button>
-              <button className="btn btn-ghost" onClick={() => setDialog(null)}>
-                Cancelar
-              </button>
+              <button className="btn btn-ghost" onClick={() => setDialog(null)}>Cancelar</button>
             </div>
           </div>
         </div>
@@ -263,26 +266,23 @@ export function Scoreboard({
               Es el turno de <strong>{currentPlayer?.name}</strong>, pero estás anotando para <strong>{oooScorer?.name}</strong>.
             </p>
             <div className="combination-options">
-              <button
-                className="btn btn-normal"
-                autoFocus
-                onClick={() => openScoreModal(d.pendingPlayerId, d.pendingCategoryId, false)}
-              >
+              <button className="btn btn-normal" autoFocus
+                onClick={() => {
+                  const p = players.find(pl => pl.id === d.pendingPlayerId)!;
+                  openScoreModal(d.pendingPlayerId, d.pendingCategoryId, false, !isCategoryAvailable(d.pendingCategoryId, p));
+                }}>
                 Continuar igual
               </button>
-              <button
-                className="btn btn-normal"
+              <button className="btn btn-normal"
                 onClick={() => {
                   onDisableTurnOrder();
-                  openScoreModal(d.pendingPlayerId, d.pendingCategoryId, false);
-                }}
-              >
+                  const p = players.find(pl => pl.id === d.pendingPlayerId)!;
+                  openScoreModal(d.pendingPlayerId, d.pendingCategoryId, false, !isCategoryAvailable(d.pendingCategoryId, p));
+                }}>
                 Ignorar el contador de turno
               </button>
-              <button
-                className="btn btn-secondary"
-                onClick={() => setDialog({ kind: 'reorder' })}
-              >
+              <button className="btn btn-secondary"
+                onClick={() => setDialog({ kind: 'reorder' })}>
                 Cambiar el orden
               </button>
             </div>
@@ -300,7 +300,6 @@ export function Scoreboard({
         />
       )}
 
-      {/* ── Toast ── */}
       {toast && <div className="toast" key={toast.id}>{toast.msg}</div>}
     </div>
   );
