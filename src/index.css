@@ -276,12 +276,32 @@ html, body {
 }
 
 .col-player {
-  min-width: 80px;
-  max-width: 120px;
-  padding: 10px 8px;
+  min-width: 88px;
+  max-width: 130px;
+  padding: 8px 6px;
   text-align: center;
+}
+
+.player-header-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.player-header-name {
+  font-size: 0.8125rem;
+  font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 110px;
+}
+
+.player-header-rank {
+  font-size: 0.6875rem;
+  font-weight: 400;
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 
@@ -311,8 +331,10 @@ html, body {
 .score-cell.filled   { background: var(--cell-filled); }
 .score-cell.served   { background: var(--cell-served); color: var(--success); }
 .score-cell.scratched { background: var(--cell-scratched); color: var(--text-muted); }
-.score-cell.locked   { background: var(--cell-locked); color: var(--text-muted); cursor: default; }
-.score-cell.blocked  { background: var(--cell-blocked); color: var(--text-muted); cursor: default; }
+.score-cell.locked   { background: var(--cell-locked); color: var(--text-muted); cursor: pointer; }
+.score-cell.blocked  { background: var(--cell-blocked); color: var(--text-muted); cursor: pointer; }
+.score-cell.filled   { cursor: pointer; }
+.score-cell.scratched { cursor: pointer; }
 
 .served-mark {
   font-size: 0.625rem;
@@ -503,6 +525,86 @@ html, body {
 .final-pos   { width: 18px; color: var(--text-muted); font-size: 0.8125rem; }
 .final-name  { flex: 1; }
 .final-total { font-variant-numeric: tabular-nums; }
+
+/* ── Scoreboard toolbar ────────────────────────────────────── */
+.sb-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.sb-round {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.sb-hint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* ── Number option buttons ─────────────────────────────────── */
+.number-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.btn-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+  text-align: left;
+}
+.btn-option:hover { background: var(--cell-filled); border-color: var(--accent); }
+.btn-option:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.option-dice {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.option-pts {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* ── Toast notification ────────────────────────────────────── */
+.toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--text-primary);
+  color: var(--bg);
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  z-index: 200;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: toast-in 0.15s ease;
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(6px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
 
 /* ── Responsive tweaks ─────────────────────────────────────── */
 @media (max-width: 480px) {

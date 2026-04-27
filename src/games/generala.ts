@@ -59,3 +59,30 @@ export function isGameComplete(players: Player[]): boolean {
 export function getWinner(players: Player[]): Player {
   return players.reduce((best, p) => (getTotal(p) > getTotal(best) ? p : best), players[0]);
 }
+
+const DIE_FACE: Partial<Record<CategoryId, number>> = {
+  ones: 1, twos: 2, threes: 3, fours: 4, fives: 5, sixes: 6,
+};
+
+export function getNumberOptions(categoryId: CategoryId): number[] {
+  const face = DIE_FACE[categoryId];
+  if (!face) return [];
+  return [1, 2, 3, 4, 5].map(n => n * face);
+}
+
+export function getCurrentRound(players: Player[]): number {
+  if (players.length === 0) return 1;
+  const minFilled = Math.min(...players.map(p => Object.keys(p.scores).length));
+  return Math.min(minFilled + 1, CATEGORIES.length);
+}
+
+export function getPlayerRanks(players: Player[]): Map<string, number> {
+  const sorted = [...players].sort((a, b) => getTotal(b) - getTotal(a));
+  const rankMap = new Map<string, number>();
+  let rank = 1;
+  for (let i = 0; i < sorted.length; i++) {
+    if (i > 0 && getTotal(sorted[i]) < getTotal(sorted[i - 1])) rank = i + 1;
+    rankMap.set(sorted[i].id, rank);
+  }
+  return rankMap;
+}
