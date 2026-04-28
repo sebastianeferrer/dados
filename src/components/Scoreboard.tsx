@@ -1,13 +1,18 @@
 import { useState, useEffect } from 'react';
-import type { Player, CategoryId, ScoreEntry, SavedRoll } from '../types/game';
+import type { Player, GameVariant, CategoryId, ScoreEntry, SavedRoll } from '../types/game';
 import {
-  CATEGORIES,
+  getCategories,
+  findCategory,
   getTotal,
+  getUpperSubtotal,
+  getUpperBonus,
   isCategoryAvailable,
   isCategoryPermanentlyBlocked,
   getPlayerRanks,
   getRankingValue,
   hasGeneralaServida,
+  UPPER_BONUS_THRESHOLD,
+  UPPER_BONUS_VALUE,
 } from '../games/generala';
 import { ScoreModal } from './ScoreModal';
 import { ReorderDialog } from './ReorderDialog';
@@ -20,6 +25,7 @@ interface Props {
   currentPlayerIndex: number;
   turnOrderEnabled: boolean;
   virtualDiceEnabled: boolean;
+  variant: GameVariant;
   isEditMode: boolean;
   onScore: (playerId: string, categoryId: CategoryId, entry: ScoreEntry) => void;
   onDeleteScore: (playerId: string, categoryId: CategoryId) => void;
@@ -35,20 +41,25 @@ type LocalDialog =
   | { kind: 'outOfOrder'; pendingPlayerId: string; pendingCategoryId: CategoryId }
   | { kind: 'reorder' };
 
-function getLeadingIds(players: Player[]): string[] {
+function getLeadingIds(players: Player[], variant: GameVariant): string[] {
   if (!players.length) return [];
-  const max = Math.max(...players.map(getRankingValue));
+  const max = Math.max(...players.map(p => getRankingValue(p, variant)));
   if (max === 0) return [];
-  return players.filter(p => getRankingValue(p) === max).map(p => p.id);
+  return players.filter(p => getRankingValue(p, variant) === max).map(p => p.id);
 }
 
 export function Scoreboard({
-  players, currentPlayerIndex, turnOrderEnabled, virtualDiceEnabled, isEditMode,
+  players, currentPlayerIndex, turnOrderEnabled, virtualDiceEnabled, variant, isEditMode,
   onScore, onDeleteScore, onWin, onReorderPlayers, onDisableTurnOrder,
 }: Props) {
   const [dialog, setDialog] = useState<LocalDialog>(null);
   const [toast,  setToast]  = useState<{ msg: string; id: number } | null>(null);
   const [activeRoll, setActiveRoll] = useState<SavedRoll | null>(null);
+
+  const categories = getCategories(variant);
+  const isYahtzee = variant === 'yahtzee';
+  const upperCats = categories.filter(c => c.section === 'upper');
+  const lowerCats = categories.filter(c => c.section === 'lower');
 
   useEffect(() => {
     if (!toast) return;
@@ -77,8 +88,8 @@ export function Scoreboard({
       setDialog({ kind: 'confirmEdit', playerId, categoryId });
       return;
     }
-    if (isCategoryPermanentlyBlocked(categoryId, player)) {
-      showToast('No disponible — Generala fue tachada.');
+    if (isCategoryPermanentlyBlocked(categoryId, player, variant)) {
+      showToast('No disponible.');
       return;
     }
     if (!isEditMode && turnOrderEnabled && players[currentPlayerIndex]?.id !== playerId) {
@@ -86,8 +97,7 @@ export function Scoreboard({
       return;
     }
 
-    // Allow locked cells (e.g. Generala Doble before Generala) — only show Tachar
-    const lockedToScratchOnly = !isCategoryAvailable(categoryId, player);
+    const lockedToScratchOnly = !isCategoryAvailable(categoryId, player, variant);
     openScoreModal(playerId, categoryId, false, lockedToScratchOnly);
   };
 
@@ -97,8 +107,10 @@ export function Scoreboard({
     onScore(playerId, categoryId, entry);
     if (!isEdit) setActiveRoll(null);
     if (!isEdit) {
-      const cat = CATEGORIES.find(c => c.id === categoryId)!;
-      if (entry.served && cat.winOnServed) { onWin(playerId, 'generalaServida'); setDialog(null); return; }
+      const cat = findCategory(categoryId, variant);
+      if (cat && entry.served && cat.winOnServed) {
+        onWin(playerId, 'generalaServida'); setDialog(null); return;
+      }
     }
     setDialog(null);
   };
@@ -107,20 +119,63 @@ export function Scoreboard({
     if (dialog?.kind !== 'score') return;
     const { playerId, categoryId } = dialog;
     onDeleteScore(playerId, categoryId);
-    // El turno se recalcula automáticamente basado en celdas completas
     setDialog(null);
   };
 
-  const rankMap    = getPlayerRanks(players);
-  const leadingIds = getLeadingIds(players);
+  const rankMap    = getPlayerRanks(players, variant);
+  const leadingIds = getLeadingIds(players, variant);
   const currentPlayer = players[currentPlayerIndex];
 
   const d = dialog;
   const modalPlayer  = d?.kind === 'score'       ? players.find(p => p.id === d.playerId)        : null;
-  const modalCat     = d?.kind === 'score'       ? CATEGORIES.find(c => c.id === d.categoryId)   : null;
+  const modalCat     = d?.kind === 'score'       ? findCategory(d.categoryId, variant)           : null;
   const editPlayer   = d?.kind === 'confirmEdit' ? players.find(p => p.id === d.playerId)        : null;
-  const editCat      = d?.kind === 'confirmEdit' ? CATEGORIES.find(c => c.id === d.categoryId)   : null;
+  const editCat      = d?.kind === 'confirmEdit' ? findCategory(d.categoryId, variant)           : null;
   const oooScorer    = d?.kind === 'outOfOrder'  ? players.find(p => p.id === d.pendingPlayerId) : null;
+
+  const renderCategoryRow = (cat: ReturnType<typeof getCategories>[number]) => (
+    <tr key={cat.id}>
+      <td className="col-category col-label">
+        {cat.dieFace
+          ? <DieIcon face={cat.dieFace} size={20} />
+          : cat.label}
+      </td>
+      {players.map((player, pIdx) => {
+        const entry = player.scores[cat.id];
+        const filled  = entry !== undefined;
+        const blocked = !filled && isCategoryPermanentlyBlocked(cat.id, player, variant);
+        const locked  = !filled && !blocked && !isCategoryAvailable(cat.id, player, variant);
+        const isCurrentCol = !isEditMode && turnOrderEnabled && pIdx === currentPlayerIndex;
+
+        const cellClass = [
+          'score-cell',
+          filled && entry.scratched ? 'scratched'
+          : filled && entry.served  ? 'served'
+          : filled                  ? 'filled'
+          : blocked                 ? 'blocked'
+          : locked                  ? 'locked'
+          :                          'available',
+          isCurrentCol ? 'col-current' : '',
+        ].filter(Boolean).join(' ');
+
+        return (
+          <td key={player.id} className={cellClass} onClick={() => handleCellClick(player.id, cat.id)}>
+            {filled && (
+              <span>
+                {entry.scratched ? 'X' : entry.value}
+                {!entry.scratched && entry.served && !cat.winOnServed && (
+                  <sup className="served-mark">S</sup>
+                )}
+                {entry.viaChance && (
+                  <sup className="served-mark" title="Vía Chance">★</sup>
+                )}
+              </span>
+            )}
+          </td>
+        );
+      })}
+    </tr>
+  );
 
   return (
     <div className="scoreboard-wrapper">
@@ -134,7 +189,9 @@ export function Scoreboard({
           <div className="turn-banner active" key={currentPlayer.id}>
             <PlayerAvatar name={currentPlayer.name} id={currentPlayer.id} size={36} />
             <span className="turn-banner-text">
-              <span className="turn-banner-label">Turno de</span>
+              <span className="turn-banner-label">
+                Turno de {isYahtzee && '· Yahtzee'}
+              </span>
               <strong className="turn-banner-name">{currentPlayer.name}</strong>
             </span>
           </div>
@@ -186,10 +243,10 @@ export function Scoreboard({
                         </span>
                       </div>
                       <span className="player-header-meta">
-                        {rank}° · {filled}/{CATEGORIES.length}
+                        {rank}° · {filled}/{categories.length}
                         <span
                           className="info-tip"
-                          title="N° = posición en el ranking · X/11 = jugadas completadas"
+                          title={`N° = posición · ${filled}/${categories.length} = jugadas completadas`}
                         >i</span>
                       </span>
                     </div>
@@ -199,59 +256,72 @@ export function Scoreboard({
             </tr>
           </thead>
 
-          <tbody>
-            {CATEGORIES.map(cat => (
-              <tr key={cat.id}>
-                <td className="col-category col-label">
-                  {cat.dieFace
-                    ? <DieIcon face={cat.dieFace} size={20} />
-                    : cat.label}
-                </td>
-                {players.map((player, pIdx) => {
-                  const entry = player.scores[cat.id];
-                  const filled  = entry !== undefined;
-                  const blocked = !filled && isCategoryPermanentlyBlocked(cat.id, player);
-                  const locked  = !filled && !blocked && !isCategoryAvailable(cat.id, player);
-                  const isCurrentCol = !isEditMode && turnOrderEnabled && pIdx === currentPlayerIndex;
-
-                  const cellClass = [
-                    'score-cell',
-                    filled && entry.scratched ? 'scratched'
-                    : filled && entry.served  ? 'served'
-                    : filled                  ? 'filled'
-                    : blocked                 ? 'blocked'
-                    : locked                  ? 'locked'
-                    :                          'available',
-                    isCurrentCol ? 'col-current' : '',
-                  ].filter(Boolean).join(' ');
-
-                  return (
-                    <td key={player.id} className={cellClass} onClick={() => handleCellClick(player.id, cat.id)}>
-                      {filled && (
-                        <span>
-                          {entry.scratched ? 'X' : entry.value}
-                          {!entry.scratched && entry.served && !cat.winOnServed && (
-                            <sup className="served-mark">S</sup>
-                          )}
-                        </span>
-                      )}
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
+          {isYahtzee ? (
+            <>
+              <tbody>
+                <tr className="section-divider">
+                  <td colSpan={players.length + 1}>Sección Superior</td>
+                </tr>
+                {upperCats.map(renderCategoryRow)}
+                <tr className="subtotal-row">
+                  <td className="col-category col-label">Subtotal</td>
+                  {players.map((p, idx) => {
+                    const isCurrentCol = !isEditMode && turnOrderEnabled && idx === currentPlayerIndex;
+                    const sub = getUpperSubtotal(p, variant);
+                    const remaining = Math.max(0, UPPER_BONUS_THRESHOLD - sub);
+                    return (
+                      <td
+                        key={p.id}
+                        className={`score-cell subtotal-cell${isCurrentCol ? ' col-current' : ''}`}
+                        title={remaining > 0
+                          ? `Faltan ${remaining} pts para el bonus de +${UPPER_BONUS_VALUE}`
+                          : `Bonus de +${UPPER_BONUS_VALUE} pts conseguido`}
+                      >
+                        <span>{sub}</span>
+                        {remaining > 0 && <small className="bonus-progress">faltan {remaining}</small>}
+                      </td>
+                    );
+                  })}
+                </tr>
+                <tr className="bonus-row">
+                  <td className="col-category col-label">Bonus (≥{UPPER_BONUS_THRESHOLD})</td>
+                  {players.map((p, idx) => {
+                    const isCurrentCol = !isEditMode && turnOrderEnabled && idx === currentPlayerIndex;
+                    const bonus = getUpperBonus(p, variant);
+                    return (
+                      <td
+                        key={p.id}
+                        className={`score-cell bonus-cell${bonus > 0 ? ' achieved' : ''}${isCurrentCol ? ' col-current' : ''}`}
+                      >
+                        {bonus > 0 ? `+${bonus}` : '—'}
+                      </td>
+                    );
+                  })}
+                </tr>
+              </tbody>
+              <tbody>
+                <tr className="section-divider">
+                  <td colSpan={players.length + 1}>Sección Inferior</td>
+                </tr>
+                {lowerCats.map(renderCategoryRow)}
+              </tbody>
+            </>
+          ) : (
+            <tbody>
+              {categories.map(renderCategoryRow)}
+            </tbody>
+          )}
 
           <tfoot>
             <tr>
               <td className="col-category col-label total-label">Total</td>
               {players.map((p, idx) => {
                 const isCurrentCol = !isEditMode && turnOrderEnabled && idx === currentPlayerIndex;
-                const served = hasGeneralaServida(p);
-                const leaderRank = Math.max(...players.map(getRankingValue));
-                const someoneHasServida = players.some(hasGeneralaServida);
-                const total = getTotal(p);
-                const myRank = getRankingValue(p);
+                const served = hasGeneralaServida(p, variant);
+                const leaderRank = Math.max(...players.map(pl => getRankingValue(pl, variant)));
+                const someoneHasServida = players.some(pl => hasGeneralaServida(pl, variant));
+                const total = getTotal(p, variant);
+                const myRank = getRankingValue(p, variant);
                 const diff = myRank - leaderRank;
                 return (
                   <td
@@ -280,6 +350,7 @@ export function Scoreboard({
         <ScoreModal
           player={modalPlayer}
           category={modalCat}
+          variant={variant}
           isEdit={d.isEdit}
           lockedToScratchOnly={d.lockedToScratchOnly}
           diceValues={!d.isEdit ? activeRoll?.values : undefined}
@@ -326,7 +397,7 @@ export function Scoreboard({
               <button className="btn btn-normal" autoFocus
                 onClick={() => {
                   const p = players.find(pl => pl.id === d.pendingPlayerId)!;
-                  openScoreModal(d.pendingPlayerId, d.pendingCategoryId, false, !isCategoryAvailable(d.pendingCategoryId, p));
+                  openScoreModal(d.pendingPlayerId, d.pendingCategoryId, false, !isCategoryAvailable(d.pendingCategoryId, p, variant));
                 }}>
                 Continuar igual
               </button>
@@ -334,7 +405,7 @@ export function Scoreboard({
                 onClick={() => {
                   onDisableTurnOrder();
                   const p = players.find(pl => pl.id === d.pendingPlayerId)!;
-                  openScoreModal(d.pendingPlayerId, d.pendingCategoryId, false, !isCategoryAvailable(d.pendingCategoryId, p));
+                  openScoreModal(d.pendingPlayerId, d.pendingCategoryId, false, !isCategoryAvailable(d.pendingCategoryId, p, variant));
                 }}>
                 Ignorar el contador de turno
               </button>

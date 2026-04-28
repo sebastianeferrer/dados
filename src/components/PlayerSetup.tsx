@@ -1,14 +1,20 @@
 import { useState } from 'react';
-import type { Player } from '../types/game';
+import type { Player, GameVariant } from '../types/game';
 
 interface Props {
-  onStart: (players: Player[], turnOrderEnabled: boolean, virtualDiceEnabled: boolean) => void;
+  onStart: (
+    players: Player[],
+    turnOrderEnabled: boolean,
+    virtualDiceEnabled: boolean,
+    variant: GameVariant,
+  ) => void;
 }
 
 export function PlayerSetup({ onStart }: Props) {
   const [names, setNames] = useState<string[]>(['', '']);
   const [turnControl, setTurnControl] = useState(true);
   const [virtualDice, setVirtualDice] = useState(false);
+  const [variant, setVariant] = useState<GameVariant>('classic');
 
   const addPlayer    = () => { if (names.length < 10) setNames([...names, '']); };
   const removePlayer = (i: number) => { if (names.length > 2) setNames(names.filter((_, j) => j !== i)); };
@@ -26,7 +32,7 @@ export function PlayerSetup({ onStart }: Props) {
       name,
       scores: {},
     }));
-    onStart(players, turnControl, virtualDice);
+    onStart(players, turnControl, virtualDice, variant);
   };
 
   return (
@@ -60,6 +66,28 @@ export function PlayerSetup({ onStart }: Props) {
       {!noDuplicates && allFilled && (
         <p className="setup-error">Los nombres no pueden repetirse.</p>
       )}
+
+      <div className="setup-mode-group">
+        <span className="setup-mode-label">Variante del juego</span>
+        <div className="setup-mode-options">
+          <button
+            type="button"
+            className={`setup-mode-btn${variant === 'classic' ? ' is-active' : ''}`}
+            onClick={() => setVariant('classic')}
+          >
+            <span className="setup-mode-title">Generala Clásica</span>
+            <span className="setup-mode-sub">11 categorías, escalera 20 / full 30 / poker 40</span>
+          </button>
+          <button
+            type="button"
+            className={`setup-mode-btn${variant === 'yahtzee' ? ' is-active' : ''}`}
+            onClick={() => setVariant('yahtzee')}
+          >
+            <span className="setup-mode-title">Yahtzee / Generala Moderna</span>
+            <span className="setup-mode-sub">13 categorías, bonus +35, Trío y Chance</span>
+          </button>
+        </div>
+      </div>
 
       <div className="setup-mode-group">
         <span className="setup-mode-label">Modo de partida</span>

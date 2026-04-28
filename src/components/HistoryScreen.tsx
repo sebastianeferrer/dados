@@ -1,7 +1,16 @@
 import { useState } from 'react';
 import type { GameRecord, PlayerRecord } from '../types/history';
-import { CATEGORIES } from '../games/generala';
+import type { GameVariant } from '../types/game';
+import { getCategories } from '../games/generala';
 import { DieIcon } from './DieIcon';
+
+function variantOf(r: GameRecord): GameVariant {
+  return r.variant ?? 'classic';
+}
+
+function variantLabel(v: GameVariant): string {
+  return v === 'yahtzee' ? 'Yahtzee' : 'Clásica';
+}
 
 interface Props {
   records: GameRecord[];
@@ -29,14 +38,15 @@ function fmtDuration(ms: number) {
   return `${sec}s`;
 }
 
-function computeStats(players: PlayerRecord[]) {
+function computeStats(players: PlayerRecord[], variant: GameVariant) {
   let servedCount = 0;
   let bestPlay: { player: string; label: string; value: number } | null = null;
+  const cats = getCategories(variant);
 
   for (const p of players) {
     for (const [catId, entry] of Object.entries(p.scores)) {
       if (!entry || entry.scratched) continue;
-      const cat = CATEGORIES.find(c => c.id === catId);
+      const cat = cats.find(c => c.id === catId);
       if (entry.served && !cat?.winOnServed) servedCount++;
       if (!bestPlay || entry.value > bestPlay.value) {
         bestPlay = { player: p.name, label: cat?.label ?? catId, value: entry.value };
@@ -46,16 +56,16 @@ function computeStats(players: PlayerRecord[]) {
   return { servedCount, bestPlay };
 }
 
-function recordHasServida(p: PlayerRecord): boolean {
-  return CATEGORIES.some(cat => {
+function recordHasServida(p: PlayerRecord, variant: GameVariant): boolean {
+  return getCategories(variant).some(cat => {
     if (!cat.winOnServed) return false;
     const entry = p.scores[cat.id];
     return !!entry && !entry.scratched && entry.served === true;
   });
 }
 
-function totalDisplay(p: PlayerRecord): string {
-  return recordHasServida(p) ? '∞' : String(p.total);
+function totalDisplay(p: PlayerRecord, variant: GameVariant): string {
+  return recordHasServida(p, variant) ? '∞' : String(p.total);
 }
 
 function isTieRecord(record: GameRecord): boolean {
@@ -95,7 +105,9 @@ function computePlayerRanking(records: GameRecord[]): PlayerStats[] {
 }
 
 function GameDetail({ record, onBack }: { record: GameRecord; onBack: () => void }) {
-  const { servedCount, bestPlay } = computeStats(record.players);
+  const variant = variantOf(record);
+  const cats = getCategories(variant);
+  const { servedCount, bestPlay } = computeStats(record.players, variant);
   const tie = isTieRecord(record);
 
   return (
@@ -105,7 +117,7 @@ function GameDetail({ record, onBack }: { record: GameRecord; onBack: () => void
         <div className="history-title-block">
           <span className="history-title">{fmt(record.startedAt)} · {fmtTime(record.startedAt)}</span>
           <span className="history-sub">
-            {record.players.length} jugadores · {fmtDuration(record.durationMs)}
+            {record.players.length} jugadores · {fmtDuration(record.durationMs)} · {variantLabel(variant)}
             {tie && ' · Empate en 1°'}
           </span>
         </div>
@@ -118,8 +130,8 @@ function GameDetail({ record, onBack }: { record: GameRecord; onBack: () => void
             <div key={i} className={`podium-item podium-pos-${p.finalRank}`}>
               <span className="podium-rank">{p.finalRank}°</span>
               <span className="podium-name">{p.name}</span>
-              <span className="podium-total">{totalDisplay(p)} pts</span>
-              {p.finalRank === 1 && record.winReason === 'generalaServida' && recordHasServida(p) && (
+              <span className="podium-total">{totalDisplay(p, variant)} pts</span>
+              {p.finalRank === 1 && record.winReason === 'generalaServida' && recordHasServida(p, variant) && (
                 <span className="podium-badge">Generala Servida</span>
               )}
               {p.finalRank === 1 && tie && (
@@ -156,14 +168,14 @@ function GameDetail({ record, onBack }: { record: GameRecord; onBack: () => void
                       <span className="player-header-name">
                         {p.finalRank === 1 && '🏆 '}{p.name}
                       </span>
-                      <span className="player-header-meta">{p.finalRank}° · {totalDisplay(p)} pts</span>
+                      <span className="player-header-meta">{p.finalRank}° · {totalDisplay(p, variant)} pts</span>
                     </div>
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {CATEGORIES.map(cat => (
+              {cats.map(cat => (
                 <tr key={cat.id}>
                   <td className="col-category col-label">
                     {cat.dieFace
@@ -199,7 +211,7 @@ function GameDetail({ record, onBack }: { record: GameRecord; onBack: () => void
               <tr>
                 <td className="col-category col-label total-label">Total</td>
                 {record.players.map((p, i) => {
-                  const served = recordHasServida(p);
+                  const served = recordHasServida(p, variant);
                   return (
                     <td
                       key={i}
@@ -219,8 +231,11 @@ function GameDetail({ record, onBack }: { record: GameRecord; onBack: () => void
   );
 }
 
+type RankingFilter = 'all' | GameVariant;
+
 export function HistoryScreen({ records, onBack, onClearHistory }: Props) {
   const [selected, setSelected] = useState<GameRecord | null>(null);
+  const [rankingFilter, setRankingFilter] = useState<RankingFilter>('all');
 
   if (selected) return <GameDetail record={selected} onBack={() => setSelected(null)} />;
 
@@ -252,35 +267,65 @@ export function HistoryScreen({ records, onBack, onClearHistory }: Props) {
         <>
           {/* Ranking global */}
           {(() => {
-            const ranking = computePlayerRanking(records);
-            if (ranking.length === 0) return null;
+            const filteredRecords = rankingFilter === 'all'
+              ? records
+              : records.filter(r => variantOf(r) === rankingFilter);
+            const ranking = computePlayerRanking(filteredRecords);
+            const hasMultipleVariants =
+              records.some(r => variantOf(r) === 'classic') &&
+              records.some(r => variantOf(r) === 'yahtzee');
             return (
               <div className="player-ranking">
-                <div className="player-ranking-title">Ranking de jugadores</div>
-                <div className="player-ranking-table">
-                  <div className="player-ranking-row player-ranking-head">
-                    <span className="pr-name">Jugador</span>
-                    <span className="pr-cell" title="Veces 1°">🥇</span>
-                    <span className="pr-cell" title="Veces 2°">🥈</span>
-                    <span className="pr-cell" title="Veces 3°">🥉</span>
-                    <span className="pr-cell pr-games" title="Partidas jugadas">PJ</span>
-                  </div>
-                  {ranking.map(p => (
-                    <div key={p.name} className="player-ranking-row">
-                      <span className="pr-name">{p.name}</span>
-                      <span className="pr-cell">{p.first}</span>
-                      <span className="pr-cell">{p.second}</span>
-                      <span className="pr-cell">{p.third}</span>
-                      <span className="pr-cell pr-games">{p.games}</span>
+                <div className="player-ranking-header">
+                  <div className="player-ranking-title">Ranking de jugadores</div>
+                  {hasMultipleVariants && (
+                    <div className="ranking-filter">
+                      <button
+                        className={`ranking-filter-btn${rankingFilter === 'all' ? ' is-active' : ''}`}
+                        onClick={() => setRankingFilter('all')}
+                      >Todas</button>
+                      <button
+                        className={`ranking-filter-btn${rankingFilter === 'classic' ? ' is-active' : ''}`}
+                        onClick={() => setRankingFilter('classic')}
+                      >Clásica</button>
+                      <button
+                        className={`ranking-filter-btn${rankingFilter === 'yahtzee' ? ' is-active' : ''}`}
+                        onClick={() => setRankingFilter('yahtzee')}
+                      >Yahtzee</button>
                     </div>
-                  ))}
+                  )}
                 </div>
+                {ranking.length === 0 ? (
+                  <div className="player-ranking-empty">
+                    No hay partidas en esta variante.
+                  </div>
+                ) : (
+                  <div className="player-ranking-table">
+                    <div className="player-ranking-row player-ranking-head">
+                      <span className="pr-name">Jugador</span>
+                      <span className="pr-cell" title="Veces 1°">🥇</span>
+                      <span className="pr-cell" title="Veces 2°">🥈</span>
+                      <span className="pr-cell" title="Veces 3°">🥉</span>
+                      <span className="pr-cell pr-games" title="Partidas jugadas">PJ</span>
+                    </div>
+                    {ranking.map(p => (
+                      <div key={p.name} className="player-ranking-row">
+                        <span className="pr-name">{p.name}</span>
+                        <span className="pr-cell">{p.first}</span>
+                        <span className="pr-cell">{p.second}</span>
+                        <span className="pr-cell">{p.third}</span>
+                        <span className="pr-cell pr-games">{p.games}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })()}
 
           <div className="history-list">
             {records.map((r, idx) => {
+              const v = variantOf(r);
               const tie = isTieRecord(r);
               const winners = r.players.filter(p => p.finalRank === 1);
               const others = r.players.filter(p => p.finalRank !== 1).slice(0, 3 - winners.length);
@@ -298,7 +343,7 @@ export function HistoryScreen({ records, onBack, onClearHistory }: Props) {
                         key={i}
                         className={`game-card-player ${p.finalRank === 1 ? 'card-winner' : ''}`}
                       >
-                        {p.finalRank}° {p.name} · {totalDisplay(p)}
+                        {p.finalRank}° {p.name} · {totalDisplay(p, v)}
                       </span>
                     ))}
                     {r.players.length > podiumCards.length && (
@@ -306,6 +351,7 @@ export function HistoryScreen({ records, onBack, onClearHistory }: Props) {
                     )}
                   </div>
                   <div className="game-card-badges">
+                    <span className={`game-card-badge variant-badge variant-${v}`}>{variantLabel(v)}</span>
                     {tie && <span className="game-card-badge tie-badge">Empate</span>}
                     {r.winReason === 'generalaServida' && (
                       <span className="game-card-badge">Generala Servida</span>

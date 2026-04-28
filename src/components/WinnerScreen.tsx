@@ -1,10 +1,11 @@
-import type { Player } from '../types/game';
+import type { Player, GameVariant } from '../types/game';
 import { getTotal, getRankingValue, hasGeneralaServida } from '../games/generala';
 
 interface Props {
   players: Player[];
   winnerId?: string;
   winReason?: 'generalaServida' | 'highScore';
+  variant: GameVariant;
   onNewGame: () => void;
   onReopenGame: () => void;
   onRestartSamePlayers: () => void;
@@ -14,22 +15,23 @@ export function WinnerScreen({
   players,
   winnerId,
   winReason,
+  variant,
   onNewGame,
   onReopenGame,
   onRestartSamePlayers,
 }: Props) {
   const winner = players.find(p => p.id === winnerId);
-  const sorted = [...players].sort((a, b) => getRankingValue(b) - getRankingValue(a));
-  const topRank = getRankingValue(sorted[0]);
-  const topScore = getTotal(sorted[0]);
-  const tiedWinners = sorted.filter(p => getRankingValue(p) === topRank);
+  const sorted = [...players].sort((a, b) => getRankingValue(b, variant) - getRankingValue(a, variant));
+  const topRank = getRankingValue(sorted[0], variant);
+  const topScore = getTotal(sorted[0], variant);
+  const tiedWinners = sorted.filter(p => getRankingValue(p, variant) === topRank);
   const isTie = tiedWinners.length > 1;
 
   // Compute real ranks (handle ties)
   const ranks = new Map<string, number>();
   let currentRank = 1;
   sorted.forEach((p, i) => {
-    if (i > 0 && getRankingValue(p) < getRankingValue(sorted[i - 1])) currentRank = i + 1;
+    if (i > 0 && getRankingValue(p, variant) < getRankingValue(sorted[i - 1], variant)) currentRank = i + 1;
     ranks.set(p.id, currentRank);
   });
 
@@ -60,9 +62,10 @@ export function WinnerScreen({
         <div className="final-scores">
           <p className="final-scores-title">Resultados finales</p>
           {sorted.map(p => {
-            const served = hasGeneralaServida(p);
+            const served = hasGeneralaServida(p, variant);
             const rank = ranks.get(p.id) ?? 1;
             const isWinner = rank === 1;
+            const total = getTotal(p, variant);
             return (
               <div
                 key={p.id}
@@ -75,7 +78,7 @@ export function WinnerScreen({
                   {isTie && isWinner && <span className="final-served-badge tie-badge">Empate</span>}
                 </span>
                 <span className="final-total">
-                  {served ? <>∞ <small>({getTotal(p)})</small></> : <>{getTotal(p)} pts</>}
+                  {served ? <>∞ <small>({total})</small></> : <>{total} pts</>}
                 </span>
               </div>
             );

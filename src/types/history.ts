@@ -1,4 +1,4 @@
-import type { CategoryId, ScoreEntry } from './game';
+import type { CategoryId, GameVariant, ScoreEntry } from './game';
 
 export interface PlayerRecord {
   name: string;
@@ -14,5 +14,7 @@ export interface GameRecord {
   durationMs: number;
   winReason: 'generalaServida' | 'highScore';
   winnerName?: string;
+  /** Old records may not have this; treat as 'classic' when missing. */
+  variant?: GameVariant;
   players: PlayerRecord[];
 }

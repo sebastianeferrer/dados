@@ -7,7 +7,7 @@ import { Scoreboard } from './components/Scoreboard';
 import { WinnerScreen } from './components/WinnerScreen';
 import { HistoryScreen } from './components/HistoryScreen';
 import { ThemeToggle } from './components/ThemeToggle';
-import type { Player, CategoryId, ScoreEntry, GameState } from './types/game';
+import type { Player, GameVariant, CategoryId, ScoreEntry, GameState } from './types/game';
 import type { GameRecord, PlayerRecord } from './types/history';
 import { isGameComplete, getWinner, getTotal, getRankingValue, computeCurrentPlayerIndex } from './games/generala';
 
@@ -16,7 +16,11 @@ function buildRecord(state: GameState): GameRecord {
   const durationMs = new Date(finishedAt).getTime() - new Date(state.startedAt).getTime();
 
   const sorted = [...state.players]
-    .map((p, oi) => ({ p, oi, total: getTotal(p), rankValue: getRankingValue(p) }))
+    .map((p, oi) => ({
+      p, oi,
+      total: getTotal(p, state.variant),
+      rankValue: getRankingValue(p, state.variant),
+    }))
     .sort((a, b) => b.rankValue - a.rankValue || a.oi - b.oi);
 
   let rank = 1;
@@ -33,6 +37,7 @@ function buildRecord(state: GameState): GameRecord {
     durationMs,
     winReason: state.winReason ?? 'highScore',
     winnerName: winner?.name,
+    variant: state.variant,
     players,
   };
 }
@@ -58,14 +63,19 @@ function App() {
     if (state.phase !== 'playing' || isEditMode) return;
     // All players must have at least one score before checking completion
     if (state.players.some(p => Object.keys(p.scores).length === 0)) return;
-    if (isGameComplete(state.players)) {
-      const winner = getWinner(state.players);
+    if (isGameComplete(state.players, state.variant)) {
+      const winner = getWinner(state.players, state.variant);
       dispatch({ type: 'SET_WINNER', winnerId: winner.id, winReason: 'highScore' });
     }
-  }, [state.players, state.phase, isEditMode]);
+  }, [state.players, state.phase, state.variant, isEditMode]);
 
-  const handleStart = (players: Player[], turnOrderEnabled: boolean, virtualDiceEnabled: boolean) =>
-    dispatch({ type: 'START_GAME', players, turnOrderEnabled, virtualDiceEnabled });
+  const handleStart = (
+    players: Player[],
+    turnOrderEnabled: boolean,
+    virtualDiceEnabled: boolean,
+    variant: GameVariant,
+  ) =>
+    dispatch({ type: 'START_GAME', players, turnOrderEnabled, virtualDiceEnabled, variant });
 
   const handleScore = (playerId: string, categoryId: CategoryId, entry: ScoreEntry) =>
     dispatch({ type: 'RECORD_SCORE', playerId, categoryId, entry });
@@ -96,7 +106,7 @@ function App() {
 
   const handleDoneEditing = () => {
     setIsEditMode(false);
-    const winner = getWinner(state.players);
+    const winner = getWinner(state.players, state.variant);
     dispatch({ type: 'SET_WINNER', winnerId: winner.id, winReason: 'highScore' });
   };
 
@@ -146,6 +156,7 @@ function App() {
             currentPlayerIndex={computeCurrentPlayerIndex(state.players)}
             turnOrderEnabled={state.turnOrderEnabled}
             virtualDiceEnabled={state.virtualDiceEnabled}
+            variant={state.variant}
             isEditMode={isEditMode}
             onScore={handleScore}
             onDeleteScore={handleDeleteScore}
@@ -158,6 +169,7 @@ function App() {
             players={state.players}
             winnerId={state.winnerId}
             winReason={state.winReason}
+            variant={state.variant}
             onNewGame={handleReset}
             onReopenGame={handleReopenGame}
             onRestartSamePlayers={handleRestartSamePlayers}

@@ -1,11 +1,17 @@
 export type CategoryId =
   | 'ones' | 'twos' | 'threes' | 'fours' | 'fives' | 'sixes'
-  | 'escalera' | 'full' | 'poker' | 'generala' | 'generalaDoble';
+  | 'escalera' | 'full' | 'poker' | 'generala' | 'generalaDoble'
+  // Yahtzee-only:
+  | 'threeOfKind' | 'smallStreet' | 'largeStreet' | 'chance';
+
+export type GameVariant = 'classic' | 'yahtzee';
 
 export interface ScoreEntry {
   value: number;
   served: boolean;
   scratched: boolean;
+  /** When chance redirects to another category, store which one for transparency. */
+  viaChance?: CategoryId;
 }
 
 export interface Player {
@@ -23,6 +29,7 @@ export interface GameState {
   winReason?: 'generalaServida' | 'highScore';
   turnOrderEnabled: boolean;
   virtualDiceEnabled: boolean;
+  variant: GameVariant;
   gameId: string;
   startedAt: string;
 }

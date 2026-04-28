@@ -1,10 +1,10 @@
 import { useReducer, useEffect } from 'react';
-import type { GameState, Player, CategoryId, ScoreEntry } from '../types/game';
+import type { GameState, GameVariant, Player, CategoryId, ScoreEntry } from '../types/game';
 
 const STORAGE_KEY = 'dados-game-state';
 
 type Action =
-  | { type: 'START_GAME'; players: Player[]; turnOrderEnabled: boolean; virtualDiceEnabled: boolean }
+  | { type: 'START_GAME'; players: Player[]; turnOrderEnabled: boolean; virtualDiceEnabled: boolean; variant: GameVariant }
   | { type: 'RECORD_SCORE'; playerId: string; categoryId: CategoryId; entry: ScoreEntry }
   | { type: 'DELETE_SCORE'; playerId: string; categoryId: CategoryId }
   | { type: 'SET_WINNER'; winnerId: string; winReason: GameState['winReason'] }
@@ -22,6 +22,7 @@ const initialState: GameState = {
   players: [],
   turnOrderEnabled: true,
   virtualDiceEnabled: false,
+  variant: 'classic',
   gameId: newId(),
   startedAt: now(),
 };
@@ -34,6 +35,7 @@ function reducer(state: GameState, action: Action): GameState {
         players: action.players,
         turnOrderEnabled: action.turnOrderEnabled,
         virtualDiceEnabled: action.virtualDiceEnabled,
+        variant: action.variant,
         gameId: newId(),
         startedAt: now(),
       };
@@ -102,6 +104,7 @@ export function useGameState() {
         ...p,
         turnOrderEnabled:    p.turnOrderEnabled    ?? true,
         virtualDiceEnabled:  p.virtualDiceEnabled  ?? false,
+        variant:             p.variant             ?? 'classic',
         gameId:              p.gameId              ?? newId(),
         startedAt:           p.startedAt           ?? now(),
       };

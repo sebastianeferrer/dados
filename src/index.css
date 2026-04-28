@@ -1221,14 +1221,56 @@ html, body {
   overflow: hidden;
 }
 
+.player-ranking-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
 .player-ranking-title {
-  padding: 10px 14px;
   font-size: 0.8125rem;
   font-weight: 600;
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  border-bottom: 1px solid var(--border);
+}
+
+.ranking-filter {
+  display: inline-flex;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.ranking-filter-btn {
+  padding: 4px 10px;
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.ranking-filter-btn + .ranking-filter-btn {
+  border-left: 1px solid var(--border);
+}
+.ranking-filter-btn:hover { background: var(--bg); }
+.ranking-filter-btn.is-active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.player-ranking-empty {
+  padding: 14px;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  text-align: center;
 }
 
 .player-ranking-table {
@@ -1287,6 +1329,181 @@ html, body {
 .podium-badge.tie-badge {
   background: var(--accent);
   color: #fff;
+}
+
+/* ── Yahtzee section dividers + bonus ──────────────────────── */
+.section-divider td {
+  text-align: left;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+  background: var(--bg);
+  padding: 6px 14px;
+  border-top: 2px solid var(--border);
+}
+
+.subtotal-row .col-label,
+.bonus-row .col-label {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.subtotal-cell {
+  font-weight: 700;
+  background: var(--cell-empty);
+}
+.subtotal-cell .bonus-progress {
+  display: block;
+  font-size: 0.625rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.bonus-cell {
+  font-weight: 700;
+  color: var(--text-muted);
+  background: var(--cell-empty);
+}
+.bonus-cell.achieved {
+  color: var(--success);
+  background: var(--cell-served);
+}
+
+/* ── Variant badge in history ──────────────────────────────── */
+.variant-badge.variant-classic {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+[data-theme="dark"] .variant-badge.variant-classic {
+  background: #1e1b4b;
+  color: #c7d2fe;
+}
+.variant-badge.variant-yahtzee {
+  background: #fce7f3;
+  color: #9d174d;
+}
+[data-theme="dark"] .variant-badge.variant-yahtzee {
+  background: #4a044e;
+  color: #f9a8d4;
+}
+
+/* ── Manual entry for sum-of-dice categories (Trío) ────────── */
+.manual-trio {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.manual-trio-tabs {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.manual-trio-tab {
+  flex: 1;
+  padding: 6px 10px;
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.manual-trio-tab + .manual-trio-tab {
+  border-left: 1px solid var(--border);
+}
+.manual-trio-tab:hover { background: var(--surface); }
+.manual-trio-tab.is-active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.manual-trio-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.manual-trio-input {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+}
+.manual-trio-input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.manual-trio-dice {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+
+.manual-trio-select {
+  padding: 8px 4px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+}
+
+.manual-trio-served {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  cursor: pointer;
+  user-select: none;
+}
+.manual-trio-served input { accent-color: var(--accent); }
+
+/* ── Chance picker ─────────────────────────────────────────── */
+.chance-targets {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.chance-target {
+  text-align: left;
+}
+.chance-target .option-pts {
+  color: var(--accent);
+  font-weight: 700;
+}
+.chance-target .option-dice {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chance-back {
+  align-self: flex-start;
+  font-size: 0.75rem !important;
+  padding: 4px 8px !important;
+  margin-bottom: 6px;
 }
 
 /* ── Setup mode selector ───────────────────────────────────── */
