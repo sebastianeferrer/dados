@@ -9,19 +9,19 @@ import { HistoryScreen } from './components/HistoryScreen';
 import { ThemeToggle } from './components/ThemeToggle';
 import type { Player, CategoryId, ScoreEntry, GameState } from './types/game';
 import type { GameRecord, PlayerRecord } from './types/history';
-import { isGameComplete, getWinner, getTotal, computeCurrentPlayerIndex } from './games/generala';
+import { isGameComplete, getWinner, getTotal, getRankingValue, computeCurrentPlayerIndex } from './games/generala';
 
 function buildRecord(state: GameState): GameRecord {
   const finishedAt = new Date().toISOString();
   const durationMs = new Date(finishedAt).getTime() - new Date(state.startedAt).getTime();
 
   const sorted = [...state.players]
-    .map((p, oi) => ({ p, oi, total: getTotal(p) }))
-    .sort((a, b) => b.total - a.total || a.oi - b.oi);
+    .map((p, oi) => ({ p, oi, total: getTotal(p), rankValue: getRankingValue(p) }))
+    .sort((a, b) => b.rankValue - a.rankValue || a.oi - b.oi);
 
   let rank = 1;
   const players: PlayerRecord[] = sorted.map((item, i) => {
-    if (i > 0 && item.total < sorted[i - 1].total) rank = i + 1;
+    if (i > 0 && item.rankValue < sorted[i - 1].rankValue) rank = i + 1;
     return { name: item.p.name, finalRank: rank, total: item.total, scores: item.p.scores };
   });
 

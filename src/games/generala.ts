@@ -33,6 +33,19 @@ export function getTotal(player: Player): number {
   );
 }
 
+export function hasGeneralaServida(player: Player): boolean {
+  return CATEGORIES.some(cat => {
+    if (!cat.winOnServed) return false;
+    const entry = player.scores[cat.id];
+    return entry !== undefined && !entry.scratched && entry.served === true;
+  });
+}
+
+/** Total used for ranking. Generala servida = instant win → Infinity. */
+export function getRankingValue(player: Player): number {
+  return hasGeneralaServida(player) ? Infinity : getTotal(player);
+}
+
 export function isCategoryAvailable(categoryId: CategoryId, player: Player): boolean {
   const cat = CATEGORIES.find(c => c.id === categoryId);
   if (!cat?.requiresScored) return true;
@@ -60,7 +73,10 @@ export function isGameComplete(players: Player[]): boolean {
 }
 
 export function getWinner(players: Player[]): Player {
-  return players.reduce((best, p) => (getTotal(p) > getTotal(best) ? p : best), players[0]);
+  return players.reduce(
+    (best, p) => (getRankingValue(p) > getRankingValue(best) ? p : best),
+    players[0]
+  );
 }
 
 const DIE_FACE: Partial<Record<CategoryId, number>> = {
@@ -93,11 +109,11 @@ export function computeCurrentPlayerIndex(players: Player[]): number {
 }
 
 export function getPlayerRanks(players: Player[]): Map<string, number> {
-  const sorted = [...players].sort((a, b) => getTotal(b) - getTotal(a));
+  const sorted = [...players].sort((a, b) => getRankingValue(b) - getRankingValue(a));
   const rankMap = new Map<string, number>();
   let rank = 1;
   for (let i = 0; i < sorted.length; i++) {
-    if (i > 0 && getTotal(sorted[i]) < getTotal(sorted[i - 1])) rank = i + 1;
+    if (i > 0 && getRankingValue(sorted[i]) < getRankingValue(sorted[i - 1])) rank = i + 1;
     rankMap.set(sorted[i].id, rank);
   }
   return rankMap;

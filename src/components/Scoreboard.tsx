@@ -6,10 +6,13 @@ import {
   isCategoryAvailable,
   isCategoryPermanentlyBlocked,
   getPlayerRanks,
+  getRankingValue,
+  hasGeneralaServida,
 } from '../games/generala';
 import { ScoreModal } from './ScoreModal';
 import { ReorderDialog } from './ReorderDialog';
 import { DieIcon } from './DieIcon';
+import { PlayerAvatar } from './PlayerAvatar';
 
 interface Props {
   players: Player[];
@@ -32,9 +35,9 @@ type LocalDialog =
 
 function getLeadingIds(players: Player[]): string[] {
   if (!players.length) return [];
-  const max = Math.max(...players.map(getTotal));
+  const max = Math.max(...players.map(getRankingValue));
   if (max === 0) return [];
-  return players.filter(p => getTotal(p) === max).map(p => p.id);
+  return players.filter(p => getRankingValue(p) === max).map(p => p.id);
 }
 
 export function Scoreboard({
@@ -117,15 +120,25 @@ export function Scoreboard({
 
   return (
     <div className="scoreboard-wrapper">
-      {/* ── Toolbar ── */}
+      {/* ── Turn banner ── */}
       <div className="sb-toolbar">
-        <span className={`sb-turn${!isEditMode && turnOrderEnabled && currentPlayer ? ' sb-turn-active' : ''}`}>
-          {isEditMode
-            ? 'Modo edición'
-            : turnOrderEnabled && currentPlayer
-            ? <>Turno de <strong>{currentPlayer.name}</strong></>
-            : 'Orden libre'}
-        </span>
+        {isEditMode ? (
+          <div className="turn-banner edit-mode">
+            <span className="turn-banner-label">Modo edición</span>
+          </div>
+        ) : turnOrderEnabled && currentPlayer ? (
+          <div className="turn-banner active" key={currentPlayer.id}>
+            <PlayerAvatar name={currentPlayer.name} id={currentPlayer.id} size={36} />
+            <span className="turn-banner-text">
+              <span className="turn-banner-label">Turno de</span>
+              <strong className="turn-banner-name">{currentPlayer.name}</strong>
+            </span>
+          </div>
+        ) : (
+          <div className="turn-banner free-mode">
+            <span className="turn-banner-label">Orden libre</span>
+          </div>
+        )}
         <button className="btn-toolbar" onClick={() => setDialog({ kind: 'reorder' })}>
           Cambiar orden
         </button>
@@ -153,9 +166,12 @@ export function Scoreboard({
                     title={p.name}
                   >
                     <div className="player-header-content">
-                      <span className="player-header-name">
-                        {isLeading && '🏆 '}{p.name}
-                      </span>
+                      <div className="player-header-top">
+                        <PlayerAvatar name={p.name} id={p.id} size={26} />
+                        <span className="player-header-name">
+                          {isLeading && '🏆 '}{p.name}
+                        </span>
+                      </div>
                       <span className="player-header-meta">
                         {rank}° · {filled}/{CATEGORIES.length}
                         <span
@@ -178,11 +194,12 @@ export function Scoreboard({
                     ? <DieIcon face={cat.dieFace} size={20} />
                     : cat.label}
                 </td>
-                {players.map(player => {
+                {players.map((player, pIdx) => {
                   const entry = player.scores[cat.id];
                   const filled  = entry !== undefined;
                   const blocked = !filled && isCategoryPermanentlyBlocked(cat.id, player);
                   const locked  = !filled && !blocked && !isCategoryAvailable(cat.id, player);
+                  const isCurrentCol = !isEditMode && turnOrderEnabled && pIdx === currentPlayerIndex;
 
                   const cellClass = [
                     'score-cell',
@@ -192,7 +209,8 @@ export function Scoreboard({
                     : blocked                 ? 'blocked'
                     : locked                  ? 'locked'
                     :                          'available',
-                  ].join(' ');
+                    isCurrentCol ? 'col-current' : '',
+                  ].filter(Boolean).join(' ');
 
                   return (
                     <td key={player.id} className={cellClass} onClick={() => handleCellClick(player.id, cat.id)}>
@@ -214,9 +232,31 @@ export function Scoreboard({
           <tfoot>
             <tr>
               <td className="col-category col-label total-label">Total</td>
-              {players.map(p => (
-                <td key={p.id} className="score-cell total-value">{getTotal(p)}</td>
-              ))}
+              {players.map((p, idx) => {
+                const isCurrentCol = !isEditMode && turnOrderEnabled && idx === currentPlayerIndex;
+                const served = hasGeneralaServida(p);
+                const leaderRank = Math.max(...players.map(getRankingValue));
+                const someoneHasServida = players.some(hasGeneralaServida);
+                const total = getTotal(p);
+                const myRank = getRankingValue(p);
+                const diff = myRank - leaderRank;
+                return (
+                  <td
+                    key={p.id}
+                    className={`score-cell total-value${isCurrentCol ? ' col-current' : ''}${served ? ' served-winner' : ''}`}
+                    title={served ? `Generala servida — ${total} pts` : undefined}
+                  >
+                    <div className="total-stack">
+                      <span>{served ? '∞' : total}</span>
+                      {players.length > 1 && !served && (
+                        someoneHasServida
+                          ? <span className="total-diff">{total} pts</span>
+                          : diff < 0 && <span className="total-diff">{diff}</span>
+                      )}
+                    </div>
+                  </td>
+                );
+              })}
             </tr>
           </tfoot>
         </table>

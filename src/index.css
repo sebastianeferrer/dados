@@ -739,7 +739,13 @@ html, body {
 [data-theme="dark"] .die-icon .die-face { fill: #f0f0f0; }
 [data-theme="dark"] .die-icon .die-dot  { fill: #111111; }
 
-.col-category.col-label { display: flex; align-items: center; justify-content: center; }
+.col-category.col-label {
+  height: 44px;
+  text-align: center;
+  vertical-align: middle;
+  padding: 0 14px;
+}
+.col-category.col-label .die-icon { display: inline-block; vertical-align: middle; }
 
 /* ── Leading player (solo copa, sin color de fondo) ───────── */
 /* El emoji 🏆 en el JSX distingue visualmente al ganador */
@@ -1044,10 +1050,252 @@ html, body {
 
 .detail-table { flex: 1; }
 
+/* ── Player avatar ─────────────────────────────────────────── */
+.player-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: #fff;
+  font-weight: 700;
+  flex-shrink: 0;
+  text-transform: uppercase;
+  letter-spacing: 0;
+  line-height: 1;
+  user-select: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+/* ── Turn banner ───────────────────────────────────────────── */
+.turn-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  flex: 1;
+  min-width: 0;
+  transition: background 0.2s, color 0.2s;
+}
+
+.turn-banner.active {
+  background: #fef08a;
+  color: #713f12;
+  animation: turn-banner-pop 0.35s ease;
+}
+[data-theme="dark"] .turn-banner.active {
+  background: #3d2f00;
+  color: #fde68a;
+}
+
+.turn-banner.edit-mode,
+.turn-banner.free-mode {
+  color: var(--text-secondary);
+  background: var(--surface);
+}
+
+.turn-banner-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.turn-banner-label {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.75;
+}
+
+.turn-banner-name {
+  font-size: 1rem;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@keyframes turn-banner-pop {
+  0%   { transform: scale(0.97); opacity: 0.6; }
+  60%  { transform: scale(1.015); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* ── Player header avatar layout ───────────────────────────── */
+.player-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  width: 100%;
+}
+
+.player-header-top .player-header-name {
+  max-width: 90px;
+}
+
+/* ── Current column highlight ──────────────────────────────── */
+.score-cell.col-current {
+  box-shadow:
+    inset 2px 0 0 var(--accent-current, #eab308),
+    inset -2px 0 0 var(--accent-current, #eab308);
+}
+.score-cell.col-current.available {
+  background: rgba(254, 240, 138, 0.35);
+}
+.score-cell.col-current.available:hover {
+  background: rgba(254, 240, 138, 0.55);
+}
+[data-theme="dark"] .score-cell.col-current.available {
+  background: rgba(234, 179, 8, 0.12);
+}
+[data-theme="dark"] .score-cell.col-current.available:hover {
+  background: rgba(234, 179, 8, 0.22);
+}
+
+/* ── Total + diff ──────────────────────────────────────────── */
+.total-stack {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.1;
+}
+
+.total-diff {
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: var(--danger);
+  opacity: 0.75;
+  font-variant-numeric: tabular-nums;
+}
+
+.score-cell.total-value.served-winner {
+  background: var(--cell-served);
+  color: var(--success);
+  font-weight: 800;
+}
+.score-cell.total-value.served-winner .total-stack > span:first-child {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+.score-cell.total-value.served-winner .total-diff {
+  color: var(--success);
+  opacity: 0.8;
+}
+
+/* Final scores: badge para servida */
+.final-served-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 7px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--cell-served);
+  color: var(--success);
+  border-radius: 4px;
+  vertical-align: middle;
+}
+.final-served-badge.tie-badge {
+  background: var(--accent);
+  color: #fff;
+}
+.final-total small {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-left: 2px;
+}
+
+/* ── Player ranking (history) ──────────────────────────────── */
+.player-ranking {
+  margin: 16px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.player-ranking-title {
+  padding: 10px 14px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--border);
+}
+
+.player-ranking-table {
+  display: flex;
+  flex-direction: column;
+}
+
+.player-ranking-row {
+  display: grid;
+  grid-template-columns: 1fr 44px 44px 44px 44px;
+  align-items: center;
+  padding: 8px 14px;
+  font-size: 0.9375rem;
+  border-bottom: 1px solid var(--border);
+}
+.player-ranking-row:last-child { border-bottom: none; }
+
+.player-ranking-head {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--bg);
+}
+
+.pr-name {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pr-cell {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.pr-cell.pr-games {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.player-ranking-head .pr-cell { font-weight: 600; }
+
+/* ── Badges agrupados en game-card ────────────────────────── */
+.game-card-badges {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.game-card-badge.tie-badge,
+.podium-badge.tie-badge {
+  background: var(--accent);
+  color: #fff;
+}
+
 /* ── Responsive tweaks ─────────────────────────────────────── */
 @media (max-width: 480px) {
   .setup-container { padding: 32px 16px 24px; }
   .col-category { padding: 6px 8px; }
+  .col-category.col-label { height: 40px; padding: 0 8px; }
   .score-cell   { height: 40px; min-width: 64px; font-size: 0.875rem; }
   .podium { flex-direction: column; }
+  .turn-banner-name { font-size: 0.9375rem; }
+  .player-header-top .player-header-name { max-width: 70px; font-size: 0.75rem; }
 }

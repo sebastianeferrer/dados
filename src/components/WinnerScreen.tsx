@@ -1,5 +1,5 @@
 import type { Player } from '../types/game';
-import { getTotal } from '../games/generala';
+import { getTotal, getRankingValue, hasGeneralaServida } from '../games/generala';
 
 interface Props {
   players: Player[];
@@ -19,9 +19,19 @@ export function WinnerScreen({
   onRestartSamePlayers,
 }: Props) {
   const winner = players.find(p => p.id === winnerId);
-  const sorted = [...players].sort((a, b) => getTotal(b) - getTotal(a));
+  const sorted = [...players].sort((a, b) => getRankingValue(b) - getRankingValue(a));
+  const topRank = getRankingValue(sorted[0]);
   const topScore = getTotal(sorted[0]);
-  const isTie = sorted.filter(p => getTotal(p) === topScore).length > 1;
+  const tiedWinners = sorted.filter(p => getRankingValue(p) === topRank);
+  const isTie = tiedWinners.length > 1;
+
+  // Compute real ranks (handle ties)
+  const ranks = new Map<string, number>();
+  let currentRank = 1;
+  sorted.forEach((p, i) => {
+    if (i > 0 && getRankingValue(p) < getRankingValue(sorted[i - 1])) currentRank = i + 1;
+    ranks.set(p.id, currentRank);
+  });
 
   return (
     <div className="winner-screen">
@@ -33,8 +43,11 @@ export function WinnerScreen({
           </>
         ) : isTie ? (
           <>
-            <p className="winner-badge">Empate</p>
-            <h1 className="winner-name">{topScore} puntos</h1>
+            <p className="winner-badge">Empate en 1°</p>
+            <h1 className="winner-name">
+              {tiedWinners.map(p => p.name).join(' · ')}
+            </h1>
+            <p className="winner-score">{topScore} puntos</p>
           </>
         ) : (
           <>
@@ -46,16 +59,27 @@ export function WinnerScreen({
 
         <div className="final-scores">
           <p className="final-scores-title">Resultados finales</p>
-          {sorted.map((p, i) => (
-            <div
-              key={p.id}
-              className={`final-score-row${p.id === winnerId ? ' is-winner' : ''}`}
-            >
-              <span className="final-pos">{i + 1}</span>
-              <span className="final-name">{p.name}</span>
-              <span className="final-total">{getTotal(p)} pts</span>
-            </div>
-          ))}
+          {sorted.map(p => {
+            const served = hasGeneralaServida(p);
+            const rank = ranks.get(p.id) ?? 1;
+            const isWinner = rank === 1;
+            return (
+              <div
+                key={p.id}
+                className={`final-score-row${isWinner ? ' is-winner' : ''}`}
+              >
+                <span className="final-pos">{rank}</span>
+                <span className="final-name">
+                  {p.name}
+                  {served && <span className="final-served-badge">Servida</span>}
+                  {isTie && isWinner && <span className="final-served-badge tie-badge">Empate</span>}
+                </span>
+                <span className="final-total">
+                  {served ? <>∞ <small>({getTotal(p)})</small></> : <>{getTotal(p)} pts</>}
+                </span>
+              </div>
+            );
+          })}
         </div>
 
         <div className="winner-actions">
