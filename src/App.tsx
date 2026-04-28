@@ -64,8 +64,8 @@ function App() {
     }
   }, [state.players, state.phase, isEditMode]);
 
-  const handleStart = (players: Player[], turnOrderEnabled: boolean) =>
-    dispatch({ type: 'START_GAME', players, turnOrderEnabled });
+  const handleStart = (players: Player[], turnOrderEnabled: boolean, virtualDiceEnabled: boolean) =>
+    dispatch({ type: 'START_GAME', players, turnOrderEnabled, virtualDiceEnabled });
 
   const handleScore = (playerId: string, categoryId: CategoryId, entry: ScoreEntry) =>
     dispatch({ type: 'RECORD_SCORE', playerId, categoryId, entry });
@@ -145,6 +145,7 @@ function App() {
             players={state.players}
             currentPlayerIndex={computeCurrentPlayerIndex(state.players)}
             turnOrderEnabled={state.turnOrderEnabled}
+            virtualDiceEnabled={state.virtualDiceEnabled}
             isEditMode={isEditMode}
             onScore={handleScore}
             onDeleteScore={handleDeleteScore}

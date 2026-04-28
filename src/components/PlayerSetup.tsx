@@ -2,12 +2,13 @@ import { useState } from 'react';
 import type { Player } from '../types/game';
 
 interface Props {
-  onStart: (players: Player[], turnOrderEnabled: boolean) => void;
+  onStart: (players: Player[], turnOrderEnabled: boolean, virtualDiceEnabled: boolean) => void;
 }
 
 export function PlayerSetup({ onStart }: Props) {
   const [names, setNames] = useState<string[]>(['', '']);
   const [turnControl, setTurnControl] = useState(true);
+  const [virtualDice, setVirtualDice] = useState(false);
 
   const addPlayer    = () => { if (names.length < 10) setNames([...names, '']); };
   const removePlayer = (i: number) => { if (names.length > 2) setNames(names.filter((_, j) => j !== i)); };
@@ -25,7 +26,7 @@ export function PlayerSetup({ onStart }: Props) {
       name,
       scores: {},
     }));
-    onStart(players, turnControl);
+    onStart(players, turnControl, virtualDice);
   };
 
   return (
@@ -59,6 +60,28 @@ export function PlayerSetup({ onStart }: Props) {
       {!noDuplicates && allFilled && (
         <p className="setup-error">Los nombres no pueden repetirse.</p>
       )}
+
+      <div className="setup-mode-group">
+        <span className="setup-mode-label">Modo de partida</span>
+        <div className="setup-mode-options">
+          <button
+            type="button"
+            className={`setup-mode-btn${!virtualDice ? ' is-active' : ''}`}
+            onClick={() => setVirtualDice(false)}
+          >
+            <span className="setup-mode-title">Sin dados virtuales</span>
+            <span className="setup-mode-sub">Solo conteo de puntos</span>
+          </button>
+          <button
+            type="button"
+            className={`setup-mode-btn${virtualDice ? ' is-active' : ''}`}
+            onClick={() => setVirtualDice(true)}
+          >
+            <span className="setup-mode-title">Con dados virtuales</span>
+            <span className="setup-mode-sub">Lanzar dados en pantalla</span>
+          </button>
+        </div>
+      </div>
 
       <label className="setup-checkbox">
         <input

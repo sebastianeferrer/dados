@@ -89,6 +89,71 @@ export function getNumberOptions(categoryId: CategoryId): number[] {
   return [1, 2, 3, 4, 5].map(n => n * face);
 }
 
+/**
+ * Given the 5 dice values + whether it was the first roll, returns the suggested
+ * scoring for a category. Returns null if the dice don't qualify (non-served combo
+ * that's not even achievable). The caller decides whether to apply it or scratch.
+ */
+export function suggestScoreFromDice(
+  dice: number[],
+  categoryId: CategoryId,
+  isFirstRoll: boolean
+): { value: number; served: boolean; canApply: boolean } | null {
+  if (dice.length !== 5) return null;
+  const sorted = [...dice].sort((a, b) => a - b);
+  const counts: Record<number, number> = {};
+  for (const d of dice) counts[d] = (counts[d] ?? 0) + 1;
+  const countValues = Object.values(counts).sort((a, b) => b - a);
+  const cat = CATEGORIES.find(c => c.id === categoryId);
+  if (!cat) return null;
+
+  // Number categories: 1-6
+  if (cat.type === 'number' && cat.dieFace) {
+    const face = cat.dieFace;
+    const n = dice.filter(d => d === face).length;
+    return { value: n * face, served: false, canApply: n > 0 };
+  }
+
+  // Combinations
+  const isStraight =
+    sorted.join('') === '12345' || sorted.join('') === '23456';
+  // En Generala el As (1) puede usarse en lugar del 6 → 1,2,3,4,5 cubre ambos.
+  const isFull = countValues[0] === 3 && countValues[1] === 2;
+  const isPoker = countValues[0] >= 4;
+  const isGenerala = countValues[0] === 5;
+
+  switch (categoryId) {
+    case 'escalera':
+      if (!isStraight) return null;
+      return {
+        value: cat.baseScore + (isFirstRoll ? cat.servedBonus : 0),
+        served: isFirstRoll,
+        canApply: true,
+      };
+    case 'full':
+      if (!isFull) return null;
+      return {
+        value: cat.baseScore + (isFirstRoll ? cat.servedBonus : 0),
+        served: isFirstRoll,
+        canApply: true,
+      };
+    case 'poker':
+      if (!isPoker) return null;
+      return {
+        value: cat.baseScore + (isFirstRoll ? cat.servedBonus : 0),
+        served: isFirstRoll,
+        canApply: true,
+      };
+    case 'generala':
+      if (!isGenerala) return null;
+      return { value: cat.baseScore, served: isFirstRoll, canApply: true };
+    case 'generalaDoble':
+      if (!isGenerala) return null;
+      return { value: cat.baseScore, served: false, canApply: true };
+  }
+  return null;
+}
+
 export function getCurrentRound(players: Player[]): number {
   if (players.length === 0) return 1;
   const minFilled = Math.min(...players.map(p => Object.keys(p.scores).length));

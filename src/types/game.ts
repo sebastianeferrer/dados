@@ -22,6 +22,14 @@ export interface GameState {
   winnerId?: string;
   winReason?: 'generalaServida' | 'highScore';
   turnOrderEnabled: boolean;
+  virtualDiceEnabled: boolean;
   gameId: string;
   startedAt: string;
+}
+
+export type DieFace = 1 | 2 | 3 | 4 | 5 | 6;
+
+export interface SavedRoll {
+  values: DieFace[];
+  rollNumber: 1 | 2 | 3;
 }

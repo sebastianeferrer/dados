@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { Player, CategoryId, ScoreEntry } from '../types/game';
+import type { Player, CategoryId, ScoreEntry, SavedRoll } from '../types/game';
 import {
   CATEGORIES,
   getTotal,
@@ -13,11 +13,13 @@ import { ScoreModal } from './ScoreModal';
 import { ReorderDialog } from './ReorderDialog';
 import { DieIcon } from './DieIcon';
 import { PlayerAvatar } from './PlayerAvatar';
+import { DiceRoller } from './DiceRoller';
 
 interface Props {
   players: Player[];
   currentPlayerIndex: number;
   turnOrderEnabled: boolean;
+  virtualDiceEnabled: boolean;
   isEditMode: boolean;
   onScore: (playerId: string, categoryId: CategoryId, entry: ScoreEntry) => void;
   onDeleteScore: (playerId: string, categoryId: CategoryId) => void;
@@ -41,11 +43,12 @@ function getLeadingIds(players: Player[]): string[] {
 }
 
 export function Scoreboard({
-  players, currentPlayerIndex, turnOrderEnabled, isEditMode,
+  players, currentPlayerIndex, turnOrderEnabled, virtualDiceEnabled, isEditMode,
   onScore, onDeleteScore, onWin, onReorderPlayers, onDisableTurnOrder,
 }: Props) {
   const [dialog, setDialog] = useState<LocalDialog>(null);
   const [toast,  setToast]  = useState<{ msg: string; id: number } | null>(null);
+  const [activeRoll, setActiveRoll] = useState<SavedRoll | null>(null);
 
   useEffect(() => {
     if (!toast) return;
@@ -92,6 +95,7 @@ export function Scoreboard({
     if (dialog?.kind !== 'score') return;
     const { playerId, categoryId, isEdit } = dialog;
     onScore(playerId, categoryId, entry);
+    if (!isEdit) setActiveRoll(null);
     if (!isEdit) {
       const cat = CATEGORIES.find(c => c.id === categoryId)!;
       if (entry.served && cat.winOnServed) { onWin(playerId, 'generalaServida'); setDialog(null); return; }
@@ -143,6 +147,15 @@ export function Scoreboard({
           Cambiar orden
         </button>
       </div>
+
+      {/* ── Dice roller ── */}
+      {virtualDiceEnabled && !isEditMode && (
+        <DiceRoller
+          onSaveRoll={setActiveRoll}
+          hasActiveRoll={activeRoll !== null}
+          onDiscardRoll={() => setActiveRoll(null)}
+        />
+      )}
 
       {/* ── Table ── */}
       <div className="table-container">
@@ -269,6 +282,8 @@ export function Scoreboard({
           category={modalCat}
           isEdit={d.isEdit}
           lockedToScratchOnly={d.lockedToScratchOnly}
+          diceValues={!d.isEdit ? activeRoll?.values : undefined}
+          isFirstRoll={!d.isEdit && activeRoll?.rollNumber === 1}
           onConfirm={handleScoreConfirm}
           onDelete={d.isEdit ? handleDeleteScore : undefined}
           onCancel={() => setDialog(null)}

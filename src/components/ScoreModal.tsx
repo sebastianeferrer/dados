@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
-import type { Player, ScoreEntry } from '../types/game';
+import type { Player, ScoreEntry, DieFace } from '../types/game';
 import type { CategoryDef } from '../games/generala';
-import { getNumberOptions } from '../games/generala';
+import { getNumberOptions, suggestScoreFromDice } from '../games/generala';
 import { DieIcon } from './DieIcon';
 
 interface Props {
@@ -9,14 +9,21 @@ interface Props {
   category: CategoryDef;
   isEdit?: boolean;
   lockedToScratchOnly?: boolean;
+  diceValues?: DieFace[];
+  isFirstRoll?: boolean;
   onConfirm: (entry: ScoreEntry) => void;
   onDelete?: () => void;
   onCancel: () => void;
 }
 
 export function ScoreModal({
-  player, category, isEdit, lockedToScratchOnly, onConfirm, onDelete, onCancel,
+  player, category, isEdit, lockedToScratchOnly,
+  diceValues, isFirstRoll = false,
+  onConfirm, onDelete, onCancel,
 }: Props) {
+  const suggestion = diceValues && diceValues.length === 5
+    ? suggestScoreFromDice(diceValues, category.id, isFirstRoll)
+    : null;
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onCancel();
     window.addEventListener('keydown', onKey);
@@ -47,6 +54,32 @@ export function ScoreModal({
         </div>
 
         <div className="modal-body">
+          {diceValues && diceValues.length === 5 && (
+            <div className="modal-dice-strip">
+              <span className="modal-dice-label">Tu tirada</span>
+              <span className="modal-dice-values">
+                {diceValues.map((v, i) => (
+                  <DieIcon key={i} face={v} size={28} />
+                ))}
+              </span>
+              {suggestion && suggestion.canApply && !lockedToScratchOnly && (
+                <button
+                  className="btn btn-suggested"
+                  onClick={() => onConfirm({
+                    value: suggestion.value,
+                    served: suggestion.served,
+                    scratched: false,
+                  })}
+                  autoFocus
+                >
+                  Anotar {suggestion.value} pts
+                  {suggestion.served && category.winOnServed && ' (¡Ganás!)'}
+                  {suggestion.served && !category.winOnServed && ' · servido'}
+                </button>
+              )}
+            </div>
+          )}
+
           {lockedToScratchOnly ? (
             <>
               <p className="modal-hint">

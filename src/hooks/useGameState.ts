@@ -4,7 +4,7 @@ import type { GameState, Player, CategoryId, ScoreEntry } from '../types/game';
 const STORAGE_KEY = 'dados-game-state';
 
 type Action =
-  | { type: 'START_GAME'; players: Player[]; turnOrderEnabled: boolean }
+  | { type: 'START_GAME'; players: Player[]; turnOrderEnabled: boolean; virtualDiceEnabled: boolean }
   | { type: 'RECORD_SCORE'; playerId: string; categoryId: CategoryId; entry: ScoreEntry }
   | { type: 'DELETE_SCORE'; playerId: string; categoryId: CategoryId }
   | { type: 'SET_WINNER'; winnerId: string; winReason: GameState['winReason'] }
@@ -21,6 +21,7 @@ const initialState: GameState = {
   phase: 'setup',
   players: [],
   turnOrderEnabled: true,
+  virtualDiceEnabled: false,
   gameId: newId(),
   startedAt: now(),
 };
@@ -32,6 +33,7 @@ function reducer(state: GameState, action: Action): GameState {
         phase: 'playing',
         players: action.players,
         turnOrderEnabled: action.turnOrderEnabled,
+        virtualDiceEnabled: action.virtualDiceEnabled,
         gameId: newId(),
         startedAt: now(),
       };
@@ -98,9 +100,10 @@ export function useGameState() {
       return {
         ...initialState,
         ...p,
-        turnOrderEnabled: p.turnOrderEnabled ?? true,
-        gameId:           p.gameId           ?? newId(),
-        startedAt:        p.startedAt        ?? now(),
+        turnOrderEnabled:    p.turnOrderEnabled    ?? true,
+        virtualDiceEnabled:  p.virtualDiceEnabled  ?? false,
+        gameId:              p.gameId              ?? newId(),
+        startedAt:           p.startedAt           ?? now(),
       };
     } catch {
       return initialState;
