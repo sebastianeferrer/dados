@@ -148,4 +148,4 @@ Mejoras planeadas — animación 3D de los dados, tracker de probabilidades, etc
 
 ## Licencia
 
-MIT.
+[GPL-3.0-or-later](./LICENSE) — software libre. Si distribuís una versión modificada, tu código también tiene que ser publicado bajo GPL.
