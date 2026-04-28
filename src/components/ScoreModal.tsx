@@ -35,7 +35,7 @@ export function ScoreModal({
   const [manualServed, setManualServed] = useState(false);
 
   const manualDiceTotal = useMemo(
-    () => manualDice.reduce((s, v) => s + v, 0),
+    () => manualDice.reduce<number>((s, v) => s + v, 0),
     [manualDice]
   );
   const manualDiceComplete = manualDice.every(v => v > 0);
