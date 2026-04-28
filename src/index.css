@@ -78,6 +78,25 @@ html, body {
   font-weight: 700;
   letter-spacing: -0.02em;
   flex: 1;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.version-tag {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  color: var(--text-muted);
+  text-decoration: none;
+  padding: 1px 5px;
+  border-radius: 4px;
+  transition: color 0.12s, background 0.12s;
+}
+.version-tag:hover {
+  color: var(--text-secondary);
+  background: var(--surface);
 }
 
 .header-actions {

@@ -118,7 +118,18 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <span className="app-title">Dados</span>
+        <span className="app-title">
+          Dados
+          <a
+            className="version-tag"
+            href="https://github.com/sebastianeferrer/dados/releases"
+            target="_blank"
+            rel="noopener noreferrer"
+            title={`Versión ${__APP_VERSION__} — ver changelog`}
+          >
+            v{__APP_VERSION__}
+          </a>
+        </span>
         <div className="header-actions">
           {isEditMode && (
             <button className="btn btn-primary" onClick={handleDoneEditing}>

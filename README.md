@@ -1,5 +1,8 @@
 # 🎲 Dados
 
+[![Release](https://img.shields.io/github/v/release/sebastianeferrer/dados?label=release)](https://github.com/sebastianeferrer/dados/releases)
+[![License: GPL v3](https://img.shields.io/badge/license-GPL--3.0-blue)](./LICENSE)
+
 App web para llevar el puntaje de **Generala** y **Yahtzee** desde el navegador, con dados virtuales opcionales, historial de partidas, ranking de jugadores y soporte de modo claro/oscuro.
 
 🔗 **Demo en vivo:** [sebastianeferrer.github.io/dados](https://sebastianeferrer.github.io/dados/)
@@ -145,6 +148,12 @@ src/
 ## Issues y mejoras pendientes
 
 Mejoras planeadas — animación 3D de los dados, tracker de probabilidades, etc — están registradas como [issues](https://github.com/sebastianeferrer/dados/issues). Si encontrás un bug o tenés una idea, abrí uno.
+
+## Versionado
+
+El proyecto sigue [Semantic Versioning](https://semver.org/lang/es/): `MAYOR.MENOR.PARCHE`. Las notas de cada release (changelog, breaking changes, bugs corregidos) viven en la página de [**Releases**](https://github.com/sebastianeferrer/dados/releases) en GitHub.
+
+La versión actual también se muestra en el header de la app, al lado del título — click en el tag lleva al changelog.
 
 ## Licencia
 
