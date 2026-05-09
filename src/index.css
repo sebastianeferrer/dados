@@ -1607,7 +1607,11 @@ html, body {
   font-family: inherit;
   transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
   transform: translateZ(0); /* capa GPU permanente — nunca se abandona */
-  overflow: hidden; /* recorta la proyección del cubo rotando para evitar que las caras blancas se vean fuera del slot */
+  /* clip-path recorta hijos con transform 3D incluso durante el hover translate del slot.
+     overflow:hidden no es confiable en ese caso porque las caras del cubo escapan en su
+     propio contexto 3D y el navegador no las recorta consistentemente. */
+  clip-path: inset(0 round 12px);
+  -webkit-clip-path: inset(0 round 12px);
 }
 
 .dice-slot.empty {
@@ -1837,7 +1841,7 @@ html, body {
   .podium { flex-direction: column; }
   .turn-banner-name { font-size: 0.9375rem; }
   .player-header-top .player-header-name { max-width: 70px; font-size: 0.75rem; }
-  .dice-slot { width: 52px; height: 52px; }
+  .dice-slot { width: 60px; height: 60px; }
   .dice-slot .die-icon { width: 38px !important; height: 38px !important; }
   .setup-mode-options { grid-template-columns: 1fr; }
 }
