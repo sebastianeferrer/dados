@@ -1597,7 +1597,6 @@ html, body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden; /* evita que el cubo 3D se extienda fuera del botón */
   background: var(--bg);
   border: 2px solid var(--border);
   border-radius: 12px;

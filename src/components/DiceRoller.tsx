@@ -26,7 +26,7 @@ interface HistoryEntry {
   ts: number;
 }
 
-const ROLL_DURATION_MS = 1200;
+const ROLL_DURATION_MS = 1600;
 
 export function DiceRoller({ onSaveRoll, hasActiveRoll, onDiscardRoll }: Props) {
   const [dice, setDice] = useState<Die[]>(initialDice);
