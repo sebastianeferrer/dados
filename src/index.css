@@ -1588,6 +1588,8 @@ html, body {
   justify-content: center;
   gap: 10px;
   flex-wrap: wrap;
+  transform: translateZ(0); /* fuerza composición GPU del contenedor antes de la animación */
+  isolation: isolate;
 }
 
 .dice-slot {
