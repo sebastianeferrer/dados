@@ -1597,6 +1597,7 @@ html, body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden; /* evita que el cubo 3D se extienda fuera del botón */
   background: var(--bg);
   border: 2px solid var(--border);
   border-radius: 12px;
@@ -1637,7 +1638,7 @@ html, body {
 .die-3d-scene {
   width: 52px;
   height: 52px;
-  perspective: 180px;
+  perspective: 320px; /* mayor valor = menos distorsión extrema en los ángulos */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1648,6 +1649,7 @@ html, body {
   height: 52px;
   position: relative;
   transform-style: preserve-3d;
+  will-change: transform; /* pre-composita la capa GPU, evita el flash blanco inicial */
 }
 
 .die-cube-face {
