@@ -1605,8 +1605,8 @@ html, body {
   cursor: default;
   padding: 0;
   font-family: inherit;
-  transition: transform 0.15s, border-color 0.15s, background 0.15s, box-shadow 0.15s;
-  will-change: transform; /* pre-composita la capa GPU para evitar flash en hover */
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  transform: translateZ(0); /* capa GPU permanente — nunca se abandona */
 }
 
 .dice-slot.empty {
@@ -1622,7 +1622,8 @@ html, body {
 
 .dice-slot.clickable { cursor: pointer; }
 .dice-slot.clickable:hover {
-  transform: translateY(-2px);
+  transform: translateY(-2px) translateZ(0); /* mantiene la capa GPU al hacer hover */
+  transition: transform 0.15s, border-color 0.15s, background 0.15s, box-shadow 0.15s;
   border-color: var(--accent);
 }
 
@@ -1651,7 +1652,9 @@ html, body {
   height: 52px;
   position: relative;
   transform-style: preserve-3d;
-  will-change: transform; /* pre-composita la capa GPU, evita el flash blanco inicial */
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden; /* fuerza capa GPU persistente en WebKit/Blink */
 }
 
 .die-cube-face {
