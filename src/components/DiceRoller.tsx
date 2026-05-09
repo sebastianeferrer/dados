@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { DieFace, SavedRoll } from '../types/game';
+import { Die3D } from './Die3D';
 import { DieIcon } from './DieIcon';
 
 interface Props {
@@ -25,11 +26,18 @@ interface HistoryEntry {
   ts: number;
 }
 
+const ROLL_DURATION_MS = 700;
+
 export function DiceRoller({ onSaveRoll, hasActiveRoll, onDiscardRoll }: Props) {
   const [dice, setDice] = useState<Die[]>(initialDice);
   const [rollNum, setRollNum] = useState(0); // 0 = sin tirar
   const [rolling, setRolling] = useState(false);
+  const [rollKey, setRollKey] = useState(0);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
+
+  // Pending dice during animation — visible to Die3D but not committed to state yet
+  const pendingDiceRef = useRef<Die[]>([]);
+  const rollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Cuando el padre marca que ya no hay roll activo (anotó la jugada), reset.
   useEffect(() => {
@@ -40,6 +48,10 @@ export function DiceRoller({ onSaveRoll, hasActiveRoll, onDiscardRoll }: Props) 
   }, [hasActiveRoll]);
 
   const reset = () => {
+    if (rollTimerRef.current) {
+      clearTimeout(rollTimerRef.current);
+      rollTimerRef.current = null;
+    }
     setDice(initialDice());
     setRollNum(0);
     setRolling(false);
@@ -47,19 +59,22 @@ export function DiceRoller({ onSaveRoll, hasActiveRoll, onDiscardRoll }: Props) 
 
   const handleRoll = () => {
     if (rollNum >= 3 || rolling) return;
+
+    // Pre-calculate final values so Die3D knows where to land
+    const finalDice = dice.map(d =>
+      d.locked && d.value !== null ? d : { ...d, value: rollFace() }
+    );
+    pendingDiceRef.current = finalDice;
+
     setRolling(true);
-    let ticks = 0;
-    const interval = setInterval(() => {
-      ticks++;
-      setDice(prev =>
-        prev.map(d => (d.locked && d.value !== null ? d : { ...d, value: rollFace() }))
-      );
-      if (ticks >= 6) {
-        clearInterval(interval);
-        setRollNum(n => n + 1);
-        setRolling(false);
-      }
-    }, 60);
+    setRollKey(k => k + 1);
+
+    rollTimerRef.current = setTimeout(() => {
+      setDice(finalDice);
+      setRollNum(n => n + 1);
+      setRolling(false);
+      rollTimerRef.current = null;
+    }, ROLL_DURATION_MS);
   };
 
   const toggleLock = (idx: number) => {
@@ -95,23 +110,30 @@ export function DiceRoller({ onSaveRoll, hasActiveRoll, onDiscardRoll }: Props) 
   return (
     <div className="dice-roller">
       <div className="dice-row">
-        {dice.map((d, i) => (
-          <button
-            key={i}
-            type="button"
-            className={`dice-slot${d.value ? ' filled' : ' empty'}${d.locked ? ' locked' : ''}${rolling && !d.locked ? ' rolling' : ''}${canLock && d.value ? ' clickable' : ''}`}
-            onClick={() => toggleLock(i)}
-            disabled={!canLock || !d.value}
-            aria-label={d.value ? `Dado ${i + 1}: ${d.value}${d.locked ? ' (fijado)' : ''}` : `Dado ${i + 1} vacío`}
-          >
-            {d.value ? (
-              <DieIcon face={d.value} size={48} />
-            ) : (
-              <span className="dice-placeholder">?</span>
-            )}
-            {d.locked && <span className="dice-lock-badge">🔒</span>}
-          </button>
-        ))}
+        {dice.map((d, i) => {
+          // During rolling, Die3D reads the pending (final) face so the animation
+          // knows where to land. Committed dice state updates after animation ends.
+          const pendingFace = rolling ? (pendingDiceRef.current[i]?.value ?? null) : d.value;
+          const isRolling = rolling && !d.locked;
+
+          return (
+            <button
+              key={i}
+              type="button"
+              className={`dice-slot${d.value ? ' filled' : ' empty'}${d.locked ? ' locked' : ''}${canLock && d.value ? ' clickable' : ''}`}
+              onClick={() => toggleLock(i)}
+              disabled={!canLock || !d.value}
+              aria-label={d.value ? `Dado ${i + 1}: ${d.value}${d.locked ? ' (fijado)' : ''}` : `Dado ${i + 1} vacío`}
+            >
+              <Die3D
+                face={pendingFace}
+                rolling={isRolling}
+                rollKey={rollKey}
+              />
+              {d.locked && <span className="dice-lock-badge">🔒</span>}
+            </button>
+          );
+        })}
       </div>
 
       <div className="dice-stats">

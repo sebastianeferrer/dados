@@ -1633,13 +1633,44 @@ html, body {
   box-shadow: 0 0 0 3px rgba(234, 179, 8, 0.2);
 }
 
-.dice-slot.rolling {
-  animation: dice-shake 0.18s ease-in-out infinite;
+/* ── 3D Dice cube ─────────────────────────────────── */
+.die-3d-scene {
+  width: 52px;
+  height: 52px;
+  perspective: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-@keyframes dice-shake {
-  0%, 100% { transform: rotate(-3deg); }
-  50%      { transform: rotate(3deg); }
+.die-3d-cube {
+  width: 52px;
+  height: 52px;
+  position: relative;
+  transform-style: preserve-3d;
+}
+
+.die-cube-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+}
+
+/* Standard CSS 3D cube face placement (half-size = 26px) */
+.die-cube-face--front  { transform: translateZ(26px); }
+.die-cube-face--back   { transform: rotateY(180deg)  translateZ(26px); }
+.die-cube-face--right  { transform: rotateY(90deg)   translateZ(26px); }
+.die-cube-face--left   { transform: rotateY(-90deg)  translateZ(26px); }
+.die-cube-face--top    { transform: rotateX(-90deg)  translateZ(26px); }
+.die-cube-face--bottom { transform: rotateX(90deg)   translateZ(26px); }
+
+@media (prefers-reduced-motion: reduce) {
+  .die-3d-cube { transition: none !important; }
 }
 
 .dice-lock-badge {
