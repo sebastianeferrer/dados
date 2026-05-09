@@ -1657,9 +1657,15 @@ html, body {
   align-items: center;
   justify-content: center;
   border-radius: 10px;
-  background: var(--bg);
-  border: 1.5px solid var(--border);
+  /* Siempre crema/marfil como dados reales, independiente del tema */
+  background: #f5f0e8;
+  border: none;
+  box-shadow: inset 0 0 0 1.5px rgba(0,0,0,0.12);
 }
+
+/* SVG dentro del cubo: siempre cara clara con puntos oscuros (dado real) */
+.die-cube-face .die-icon .die-face { fill: #f5f0e8; }
+.die-cube-face .die-icon .die-dot  { fill: #1a1a1a; }
 
 /* Standard CSS 3D cube face placement (half-size = 26px) */
 .die-cube-face--front  { transform: translateZ(26px); }

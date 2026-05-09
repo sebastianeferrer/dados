@@ -64,7 +64,7 @@ export function Die3D({ face, rolling, rollKey }: Props) {
           { transform: ROLL_END_TRANSFORM[face] },
         ],
         {
-          duration: 700,
+          duration: 1200,
           easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
           fill: 'forwards',
         }
