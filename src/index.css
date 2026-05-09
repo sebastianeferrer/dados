@@ -1606,6 +1606,7 @@ html, body {
   padding: 0;
   font-family: inherit;
   transition: transform 0.15s, border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  will-change: transform; /* pre-composita la capa GPU para evitar flash en hover */
 }
 
 .dice-slot.empty {
