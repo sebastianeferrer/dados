@@ -42,8 +42,8 @@ export const YAHTZEE_CATEGORIES: CategoryDef[] = [
   // Lower Section
   // Lower combos (excepto generalas y chance) tienen +5 si se anotan servidas (1er tiro).
   { id: 'threeOfKind',   label: 'Trío',           section: 'lower', type: 'combination', baseScore: 0,   servedBonus: 5, winOnServed: false, sumAllDice: true },
-  { id: 'poker',         label: 'Poker',          section: 'lower', type: 'combination', baseScore: 40,  servedBonus: 5, winOnServed: false },
   { id: 'full',          label: 'Full',           section: 'lower', type: 'combination', baseScore: 30,  servedBonus: 5, winOnServed: false },
+  { id: 'poker',         label: 'Poker',          section: 'lower', type: 'combination', baseScore: 40,  servedBonus: 5, winOnServed: false },
   { id: 'smallStreet',   label: 'Escalera Corta', section: 'lower', type: 'combination', baseScore: 20,  servedBonus: 5, winOnServed: false },
   { id: 'largeStreet',   label: 'Escalera Larga', section: 'lower', type: 'combination', baseScore: 40,  servedBonus: 5, winOnServed: false },
   { id: 'generala',      label: 'Generala',       section: 'lower', type: 'combination', baseScore: 50,  servedBonus: 0, winOnServed: true  },
