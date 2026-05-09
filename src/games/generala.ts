@@ -166,8 +166,8 @@ function isSmallStraight(dice: number[]): boolean {
 
 /** Detect if the dice form a large straight (5 consecutive). */
 function isLargeStraight(dice: number[]): boolean {
-  const sorted = [...dice].sort((a, b) => a - b);
-  return sorted.join('') === '12345' || sorted.join('') === '23456';
+  const sorted = [...dice].sort((a, b) => a - b).join('');
+  return sorted === '12345' || sorted === '23456' || sorted === '13456'; // 13456: 1 actúa como 7
 }
 
 /**
@@ -195,10 +195,7 @@ export function suggestScoreFromDice(
   }
 
   // Combinations
-  const isClassicStraight =
-    isLargeStraight(dice) ||
-    [...dice].sort().join('') === '12345' ||
-    [...dice].sort().join('') === '23456';
+  const isClassicStraight = isLargeStraight(dice);
   const isFull = countValues[0] === 3 && countValues[1] === 2;
   const isPoker = countValues[0] >= 4;
   const isGenerala = countValues[0] === 5;
