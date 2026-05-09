@@ -1588,8 +1588,6 @@ html, body {
   justify-content: center;
   gap: 10px;
   flex-wrap: wrap;
-  transform: translateZ(0); /* fuerza composición GPU del contenedor antes de la animación */
-  isolation: isolate;
 }
 
 .dice-slot {
@@ -1606,9 +1604,7 @@ html, body {
   padding: 0;
   font-family: inherit;
   transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
-  transform: translateZ(0); /* capa GPU permanente — nunca se abandona */
-  /* El clipping del cubo 3D se hace en .die-3d-clip (wrapper sin transform).
-     Aplicarlo en el slot se defeats por el hover transform del propio slot. */
+  /* El clipping del cubo 3D se hace en .die-3d-clip (wrapper sin transform). */
 }
 
 .dice-slot.empty {
@@ -1624,9 +1620,10 @@ html, body {
 
 .dice-slot.clickable { cursor: pointer; }
 .dice-slot.clickable:hover {
-  transform: translateY(-2px) translateZ(0); /* mantiene la capa GPU al hacer hover */
-  transition: transform 0.15s, border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  /* No usar transform en hover: crea contexto 3D que rompe el recorte y dispara
+     destellos del compositor en Chrome desktop. Usamos box-shadow para feedback. */
   border-color: var(--accent);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
 }
 
 .dice-slot.locked {
@@ -1674,10 +1671,11 @@ html, body {
   height: 40px;
   position: relative;
   transform-style: preserve-3d;
-  transform: rotateX(0deg) rotateY(0deg); /* transform base: nunca queda sin transform */
-  will-change: transform;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
+  transform: rotateX(0deg) rotateY(0deg);
+  /* Sin will-change ni backface-visibility: forzar capas GPU permanentes hace que
+     Chrome aloque buffers enormes y produzca destellos a nivel del compositor del
+     sistema (afectando incluso la barra del navegador). Dejar que el browser
+     decida la promoción a capa solo durante la animación. */
 }
 
 .die-cube-face {
