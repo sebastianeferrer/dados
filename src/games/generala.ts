@@ -271,7 +271,6 @@ export function getChanceCandidates(
 ): CategoryDef[] {
   return getCategories(variant).filter(cat => {
     if (cat.id === 'chance') return false;
-    if (player.scores[cat.id] !== undefined) return false;
     if (isCategoryPermanentlyBlocked(cat.id, player, variant)) return false;
     if (!isCategoryAvailable(cat.id, player, variant)) return false;
     return true;
@@ -292,7 +291,6 @@ export function resolveChanceTargets(
   const out: Array<{ category: CategoryDef; value: number; served: boolean }> = [];
   for (const cat of cats) {
     if (cat.id === 'chance') continue;
-    if (player.scores[cat.id] !== undefined) continue;
     if (isCategoryPermanentlyBlocked(cat.id, player, variant)) continue;
     if (!isCategoryAvailable(cat.id, player, variant)) continue;
     const sug = suggestScoreFromDice(dice, cat.id, isFirstRoll, variant);

@@ -144,7 +144,7 @@ export function ScoreModal({
                   ? ' El valor calculado aparece a la derecha.'
                   : ' Después ingresás el valor que corresponda.'}
                 <br />
-                <span className="confirm-subtext">El valor se anota en Chance; la categoría destino queda libre.</span>
+                <span className="confirm-subtext">El valor se anota en Chance; la categoría destino no se modifica.</span>
               </p>
               <div className="chance-targets">
                 {chanceCandidates.length === 0 && (
