@@ -1607,11 +1607,8 @@ html, body {
   font-family: inherit;
   transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
   transform: translateZ(0); /* capa GPU permanente — nunca se abandona */
-  /* clip-path recorta hijos con transform 3D incluso durante el hover translate del slot.
-     overflow:hidden no es confiable en ese caso porque las caras del cubo escapan en su
-     propio contexto 3D y el navegador no las recorta consistentemente. */
-  clip-path: inset(0 round 12px);
-  -webkit-clip-path: inset(0 round 12px);
+  /* El clipping del cubo 3D se hace en .die-3d-clip (wrapper sin transform).
+     Aplicarlo en el slot se defeats por el hover transform del propio slot. */
 }
 
 .dice-slot.empty {
@@ -1640,6 +1637,21 @@ html, body {
 [data-theme="dark"] .dice-slot.locked {
   background: rgba(234, 179, 8, 0.12);
   box-shadow: 0 0 0 3px rgba(234, 179, 8, 0.2);
+}
+
+/* Wrapper que recorta la proyección del cubo 3D rotando.
+   Importante: NO debe tener transform propio. Si lo tuviera (o si el clipping
+   se aplicara directamente en .dice-slot, que sí tiene hover transform), Chrome
+   pierde el recorte de hijos con preserve-3d y aparecen "destellos" blancos. */
+.die-3d-clip {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: inherit;
 }
 
 /* ── 3D Dice cube ───────────────────────────────────

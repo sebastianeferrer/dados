@@ -82,14 +82,19 @@ export function Die3D({ face, rolling, rollKey }: Props) {
   }
 
   return (
-    <div className="die-3d-scene">
-      <div ref={cubeRef} className="die-3d-cube">
-        <div className="die-cube-face die-cube-face--front">  <DieIcon face={1} size={32} /></div>
-        <div className="die-cube-face die-cube-face--back">   <DieIcon face={6} size={32} /></div>
-        <div className="die-cube-face die-cube-face--top">    <DieIcon face={2} size={32} /></div>
-        <div className="die-cube-face die-cube-face--bottom"> <DieIcon face={5} size={32} /></div>
-        <div className="die-cube-face die-cube-face--right">  <DieIcon face={3} size={32} /></div>
-        <div className="die-cube-face die-cube-face--left">   <DieIcon face={4} size={32} /></div>
+    // Wrapper sin transform propio: aplica overflow/clip de forma estable.
+    // Si el clip se aplicara directo en .dice-slot (con hover transform),
+    // el contexto 3D del hover defeats el clipping en Chrome desktop.
+    <div className="die-3d-clip">
+      <div className="die-3d-scene">
+        <div ref={cubeRef} className="die-3d-cube">
+          <div className="die-cube-face die-cube-face--front">  <DieIcon face={1} size={32} /></div>
+          <div className="die-cube-face die-cube-face--back">   <DieIcon face={6} size={32} /></div>
+          <div className="die-cube-face die-cube-face--top">    <DieIcon face={2} size={32} /></div>
+          <div className="die-cube-face die-cube-face--bottom"> <DieIcon face={5} size={32} /></div>
+          <div className="die-cube-face die-cube-face--right">  <DieIcon face={3} size={32} /></div>
+          <div className="die-cube-face die-cube-face--left">   <DieIcon face={4} size={32} /></div>
+        </div>
       </div>
     </div>
   );
