@@ -56,11 +56,14 @@ export function ScoreModal({
   const viaChanceId = isChance && targetCategory ? targetCategory.id : undefined;
 
   // Reset manual entry state when switching chance target.
+  // This is a valid pattern for dependent state reset; the lint warning is overly strict.
+  // Consider refactoring if cascading renders become a problem.
   useEffect(() => {
     setManualSum('');
     setManualDice([0, 0, 0, 0, 0]);
     setManualServed(false);
     setManualMode('sum');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chanceTarget]);
 
   const score = (

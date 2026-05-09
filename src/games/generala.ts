@@ -5,7 +5,7 @@ export type SectionId = 'upper' | 'lower';
 export interface CategoryDef {
   id: CategoryId;
   label: string;
-  type: 'number' | 'combination' | 'chance';
+  type: 'number' | 'combination' | 'chance' | 'bonus';
   section?: SectionId;
   baseScore: number;
   servedBonus: number;
@@ -15,6 +15,10 @@ export interface CategoryDef {
   dieFace?: 1 | 2 | 3 | 4 | 5 | 6;
   /** Score is the sum of all 5 dice instead of a fixed value (Three of a Kind). */
   sumAllDice?: boolean;
+  /** Categoría especial auto-tracked (Yahtzee Bonus): no cuenta para completar el juego. */
+  autoTracked?: boolean;
+  /** Yahtzee Original: la escalera larga NO acepta 1-3-4-5-6 como wildcard. */
+  strictLargeStraight?: boolean;
 }
 
 export const CLASSIC_CATEGORIES: CategoryDef[] = [
@@ -31,6 +35,7 @@ export const CLASSIC_CATEGORIES: CategoryDef[] = [
   { id: 'generalaDoble', label: 'Generala Doble', type: 'combination', baseScore: 100, servedBonus: 0, winOnServed: false, requiresScored: 'generala' },
 ];
 
+/** Generahtzee — variante híbrida Generala+Yahtzee del repo. */
 export const YAHTZEE_CATEGORIES: CategoryDef[] = [
   // Upper Section
   { id: 'ones',   label: 'Unos',    dieFace: 1, section: 'upper', type: 'number', baseScore: 0, servedBonus: 0, winOnServed: false, maxInput: 5  },
@@ -51,11 +56,53 @@ export const YAHTZEE_CATEGORIES: CategoryDef[] = [
   { id: 'chance',        label: 'Chance',         section: 'lower', type: 'chance',      baseScore: 0,   servedBonus: 0, winOnServed: false },
 ];
 
+/**
+ * Yahtzee Original — reglas oficiales:
+ * - Sin bonus servida (+5).
+ * - Three/Four of a Kind: suma de los 5 dados (no valores fijos).
+ * - Full House = 25, Escalera Corta = 30, Escalera Larga = 40 (estricta, sin 1-3-4-5-6).
+ * - Yahtzee = 50 (sin instant-win servida).
+ * - Chance = suma de los 5 dados (no comodín).
+ * - Yahtzee Bonus: +100 acumulado por cada 5-iguales adicional tras el primer Yahtzee.
+ */
+export const YAHTZEE_ORIGINAL_CATEGORIES: CategoryDef[] = [
+  // Upper Section
+  { id: 'ones',   label: 'Unos',    dieFace: 1, section: 'upper', type: 'number', baseScore: 0, servedBonus: 0, winOnServed: false, maxInput: 5  },
+  { id: 'twos',   label: 'Doses',   dieFace: 2, section: 'upper', type: 'number', baseScore: 0, servedBonus: 0, winOnServed: false, maxInput: 10 },
+  { id: 'threes', label: 'Treses',  dieFace: 3, section: 'upper', type: 'number', baseScore: 0, servedBonus: 0, winOnServed: false, maxInput: 15 },
+  { id: 'fours',  label: 'Cuatros', dieFace: 4, section: 'upper', type: 'number', baseScore: 0, servedBonus: 0, winOnServed: false, maxInput: 20 },
+  { id: 'fives',  label: 'Cincos',  dieFace: 5, section: 'upper', type: 'number', baseScore: 0, servedBonus: 0, winOnServed: false, maxInput: 25 },
+  { id: 'sixes',  label: 'Seises',  dieFace: 6, section: 'upper', type: 'number', baseScore: 0, servedBonus: 0, winOnServed: false, maxInput: 30 },
+  // Lower Section
+  { id: 'threeOfKind',   label: 'Trío (3 iguales)',  section: 'lower', type: 'combination', baseScore: 0,  servedBonus: 0, winOnServed: false, sumAllDice: true },
+  { id: 'poker',         label: 'Poker (4 iguales)', section: 'lower', type: 'combination', baseScore: 0,  servedBonus: 0, winOnServed: false, sumAllDice: true },
+  { id: 'full',          label: 'Full',              section: 'lower', type: 'combination', baseScore: 25, servedBonus: 0, winOnServed: false },
+  { id: 'smallStreet',   label: 'Escalera Corta',    section: 'lower', type: 'combination', baseScore: 30, servedBonus: 0, winOnServed: false },
+  { id: 'largeStreet',   label: 'Escalera Larga',    section: 'lower', type: 'combination', baseScore: 40, servedBonus: 0, winOnServed: false, strictLargeStraight: true },
+  { id: 'generala',      label: 'Yahtzee',           section: 'lower', type: 'combination', baseScore: 50, servedBonus: 0, winOnServed: false },
+  { id: 'chance',        label: 'Chance',            section: 'lower', type: 'combination', baseScore: 0,  servedBonus: 0, winOnServed: false, sumAllDice: true },
+  // Yahtzee Bonus — auto-tracked, +100 por cada 5-iguales adicional tras el primer Yahtzee
+  { id: 'yahtzeeBonus',  label: 'Yahtzee Bonus',     section: 'lower', type: 'bonus', baseScore: 0, servedBonus: 0, winOnServed: false, autoTracked: true },
+];
+
 export const UPPER_BONUS_THRESHOLD = 63;
 export const UPPER_BONUS_VALUE = 35;
+export const YAHTZEE_BONUS_VALUE = 100;
 
 export function getCategories(variant: GameVariant): CategoryDef[] {
-  return variant === 'yahtzee' ? YAHTZEE_CATEGORIES : CLASSIC_CATEGORIES;
+  if (variant === 'yahtzee') return YAHTZEE_CATEGORIES;
+  if (variant === 'yahtzeeOriginal') return YAHTZEE_ORIGINAL_CATEGORIES;
+  return CLASSIC_CATEGORIES;
+}
+
+/** Categorías que cuentan para "juego completo" (excluye autoTracked). */
+export function getRequiredCategories(variant: GameVariant): CategoryDef[] {
+  return getCategories(variant).filter(c => !c.autoTracked);
+}
+
+/** True si la variante usa la sección superior con bonus +35 a partir de 63. */
+export function hasUpperBonus(variant: GameVariant): boolean {
+  return variant === 'yahtzee' || variant === 'yahtzeeOriginal';
 }
 
 export function findCategory(id: CategoryId, variant: GameVariant): CategoryDef | undefined {
@@ -79,7 +126,7 @@ export function getUpperSubtotal(player: Player, variant: GameVariant): number {
 }
 
 export function getUpperBonus(player: Player, variant: GameVariant): number {
-  if (variant !== 'yahtzee') return 0;
+  if (!hasUpperBonus(variant)) return 0;
   return getUpperSubtotal(player, variant) >= UPPER_BONUS_THRESHOLD ? UPPER_BONUS_VALUE : 0;
 }
 
@@ -126,7 +173,7 @@ export function isCategoryPermanentlyBlocked(
 
 export function isGameComplete(players: Player[], variant: GameVariant = 'classic'): boolean {
   if (players.length === 0) return false;
-  const cats = getCategories(variant);
+  const cats = getRequiredCategories(variant);
   return players.every(player => {
     if (Object.keys(player.scores).length === 0) return false;
     return cats.every(cat => {
@@ -164,10 +211,15 @@ function isSmallStraight(dice: number[]): boolean {
   return seqs.some(seq => seq.every(n => set.has(n)));
 }
 
-/** Detect if the dice form a large straight (5 consecutive). */
-function isLargeStraight(dice: number[]): boolean {
+/**
+ * Detect if the dice form a large straight (5 consecutive).
+ * @param strict si true, NO acepta 1-3-4-5-6 (modo Yahtzee Original).
+ */
+function isLargeStraight(dice: number[], strict = false): boolean {
   const sorted = [...dice].sort((a, b) => a - b).join('');
-  return sorted === '12345' || sorted === '23456' || sorted === '13456'; // 13456: 1 actúa como 7
+  if (sorted === '12345' || sorted === '23456') return true;
+  if (!strict && sorted === '13456') return true; // 1 actúa como 7 en Generala/Generahtzee
+  return false;
 }
 
 /**
@@ -195,64 +247,48 @@ export function suggestScoreFromDice(
   }
 
   // Combinations
-  const isClassicStraight = isLargeStraight(dice);
   const isFull = countValues[0] === 3 && countValues[1] === 2;
   const isPoker = countValues[0] >= 4;
   const isGenerala = countValues[0] === 5;
   const isThreeOfKind = countValues[0] >= 3;
+  const isStrictLarge = !!cat.strictLargeStraight;
+
+  // Helper para combos que pueden ser sumAll o baseScore
+  const comboValue = (matched: boolean) => {
+    if (!matched) return null;
+    const base = cat.sumAllDice ? sumAll : cat.baseScore;
+    return {
+      value: base + (isFirstRoll ? cat.servedBonus : 0),
+      served: isFirstRoll && cat.servedBonus > 0,
+      canApply: true,
+    };
+  };
 
   switch (categoryId) {
     case 'escalera':
-      if (!isClassicStraight) return null;
-      return {
-        value: cat.baseScore + (isFirstRoll ? cat.servedBonus : 0),
-        served: isFirstRoll,
-        canApply: true,
-      };
+      return comboValue(isLargeStraight(dice));
     case 'full':
-      if (!isFull) return null;
-      return {
-        value: cat.baseScore + (isFirstRoll ? cat.servedBonus : 0),
-        served: isFirstRoll,
-        canApply: true,
-      };
+      return comboValue(isFull);
     case 'poker':
-      if (!isPoker) return null;
-      return {
-        value: cat.baseScore + (isFirstRoll ? cat.servedBonus : 0),
-        served: isFirstRoll,
-        canApply: true,
-      };
+      return comboValue(isPoker);
     case 'generala':
       if (!isGenerala) return null;
-      return { value: cat.baseScore, served: isFirstRoll, canApply: true };
+      return { value: cat.baseScore, served: cat.winOnServed && isFirstRoll, canApply: true };
     case 'generalaDoble':
       if (!isGenerala) return null;
       return { value: cat.baseScore, served: false, canApply: true };
     case 'threeOfKind':
-      if (!isThreeOfKind) return null;
-      return {
-        value: sumAll + (isFirstRoll ? cat.servedBonus : 0),
-        served: isFirstRoll,
-        canApply: true,
-      };
+      return comboValue(isThreeOfKind);
     case 'smallStreet':
-      if (!isSmallStraight(dice)) return null;
-      return {
-        value: cat.baseScore + (isFirstRoll ? cat.servedBonus : 0),
-        served: isFirstRoll,
-        canApply: true,
-      };
+      return comboValue(isSmallStraight(dice));
     case 'largeStreet':
-      if (!isLargeStraight(dice)) return null;
-      return {
-        value: cat.baseScore + (isFirstRoll ? cat.servedBonus : 0),
-        served: isFirstRoll,
-        canApply: true,
-      };
+      return comboValue(isLargeStraight(dice, isStrictLarge));
     case 'chance':
-      // Chance is a wildcard — its value depends on the chosen target category.
-      // Caller resolves this via resolveChanceTargets().
+      // Si la variante usa chance como sumAll (Yahtzee Original) lo manejamos aquí.
+      // Si es comodín (Generahtzee), el caller usa resolveChanceTargets().
+      if (cat.sumAllDice) {
+        return { value: sumAll, served: false, canApply: true };
+      }
       return null;
   }
   return null;
@@ -300,9 +336,34 @@ export function resolveChanceTargets(
 
 export function getCurrentRound(players: Player[], variant: GameVariant = 'classic'): number {
   if (players.length === 0) return 1;
-  const cats = getCategories(variant);
+  const cats = getRequiredCategories(variant);
   const minFilled = Math.min(...players.map(p => Object.keys(p.scores).length));
   return Math.min(minFilled + 1, cats.length);
+}
+
+/** True si los 5 dados son iguales (Yahtzee/Generala). */
+export function isFiveOfKind(dice: number[]): boolean {
+  return dice.length === 5 && new Set(dice).size === 1;
+}
+
+/**
+ * Yahtzee Bonus: +100 por cada Yahtzee adicional luego de anotar el primero ≥50.
+ * Devuelve cuánto se debe sumar al bonus actual del jugador, dado que acaba de
+ * usar `dice` para anotar `categoryId`. Devuelve 0 si no aplica.
+ */
+export function getYahtzeeBonusIncrement(
+  player: Player,
+  dice: number[],
+  categoryId: CategoryId,
+  variant: GameVariant
+): number {
+  if (variant !== 'yahtzeeOriginal') return 0;
+  if (categoryId === 'generala') return 0; // anotando el Yahtzee inicial no genera bonus
+  if (!isFiveOfKind(dice)) return 0;
+  const yahtzee = player.scores['generala'];
+  if (!yahtzee || yahtzee.scratched) return 0;
+  if (yahtzee.value < 50) return 0;
+  return YAHTZEE_BONUS_VALUE;
 }
 
 /**

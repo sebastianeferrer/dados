@@ -83,8 +83,16 @@ export function PlayerSetup({ onStart }: Props) {
             className={`setup-mode-btn${variant === 'yahtzee' ? ' is-active' : ''}`}
             onClick={() => setVariant('yahtzee')}
           >
-            <span className="setup-mode-title">Yahtzee / Generala Moderna</span>
-            <span className="setup-mode-sub">13 categorías, bonus +35, Trío y Chance</span>
+            <span className="setup-mode-title">Generahtzee</span>
+            <span className="setup-mode-sub">Híbrido: 13 cat, bonus +35, Trío, Chance comodín, servida +5</span>
+          </button>
+          <button
+            type="button"
+            className={`setup-mode-btn${variant === 'yahtzeeOriginal' ? ' is-active' : ''}`}
+            onClick={() => setVariant('yahtzeeOriginal')}
+          >
+            <span className="setup-mode-title">Yahtzee Original</span>
+            <span className="setup-mode-sub">Reglas oficiales, Yahtzee Bonus +100 acumulable</span>
           </button>
         </div>
       </div>

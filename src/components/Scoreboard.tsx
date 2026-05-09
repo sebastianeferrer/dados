@@ -1,16 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { Player, GameVariant, CategoryId, ScoreEntry, SavedRoll } from '../types/game';
 import {
   getCategories,
+  getRequiredCategories,
   findCategory,
   getTotal,
   getUpperSubtotal,
   getUpperBonus,
+  hasUpperBonus,
   isCategoryAvailable,
   isCategoryPermanentlyBlocked,
   getPlayerRanks,
   getRankingValue,
   hasGeneralaServida,
+  getYahtzeeBonusIncrement,
   UPPER_BONUS_THRESHOLD,
   UPPER_BONUS_VALUE,
 } from '../games/generala';
@@ -55,17 +58,21 @@ export function Scoreboard({
   const [dialog, setDialog] = useState<LocalDialog>(null);
   const [toast,  setToast]  = useState<{ msg: string; id: number } | null>(null);
   const [activeRoll, setActiveRoll] = useState<SavedRoll | null>(null);
+  const toastIdRef = useRef(0);
 
   const categories = getCategories(variant);
-  const isYahtzee = variant === 'yahtzee';
+  const requiredCategories = getRequiredCategories(variant);
+  const hasSections = hasUpperBonus(variant);
+  const isYahtzeeOriginal = variant === 'yahtzeeOriginal';
   const upperCats = categories.filter(c => c.section === 'upper');
-  const lowerCats = categories.filter(c => c.section === 'lower');
+  const lowerCats = categories.filter(c => c.section === 'lower' && !c.autoTracked);
+  const bonusCat = categories.find(c => c.id === 'yahtzeeBonus');
 
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 2500);
     return () => clearTimeout(t);
-  }, [toast?.id]);
+  }, [toast]);
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -75,7 +82,10 @@ export function Scoreboard({
     return () => window.removeEventListener('keydown', handleEsc);
   }, [dialog]);
 
-  const showToast = (msg: string) => setToast({ msg, id: Date.now() });
+  const showToast = (msg: string) => {
+    toastIdRef.current += 1;
+    setToast({ msg, id: toastIdRef.current });
+  };
 
   const openScoreModal = (
     playerId: string, categoryId: CategoryId, isEdit: boolean, lockedToScratchOnly = false
@@ -106,6 +116,24 @@ export function Scoreboard({
     const { playerId, categoryId, isEdit } = dialog;
     onScore(playerId, categoryId, entry);
     if (!isEdit) setActiveRoll(null);
+
+    // Yahtzee Original: si el tiro era un quinteto y ya hay un Yahtzee anotado ≥50,
+    // acumular +100 en yahtzeeBonus (aplica incluso al tachar otra categoría).
+    if (!isEdit && isYahtzeeOriginal && activeRoll) {
+      const player = players.find(p => p.id === playerId);
+      if (player) {
+        const inc = getYahtzeeBonusIncrement(player, activeRoll.values, categoryId, variant);
+        if (inc > 0) {
+          const prev = player.scores['yahtzeeBonus']?.value ?? 0;
+          onScore(playerId, 'yahtzeeBonus', {
+            value: prev + inc,
+            served: false,
+            scratched: false,
+          });
+        }
+      }
+    }
+
     if (!isEdit) {
       const cat = findCategory(categoryId, variant);
       if (cat && entry.served && cat.winOnServed) {
@@ -190,7 +218,7 @@ export function Scoreboard({
             <PlayerAvatar name={currentPlayer.name} id={currentPlayer.id} size={36} />
             <span className="turn-banner-text">
               <span className="turn-banner-label">
-                Turno de {isYahtzee && '· Yahtzee'}
+                Turno de{variant === 'yahtzee' ? ' · Generahtzee' : variant === 'yahtzeeOriginal' ? ' · Yahtzee' : ''}
               </span>
               <strong className="turn-banner-name">{currentPlayer.name}</strong>
             </span>
@@ -223,7 +251,7 @@ export function Scoreboard({
               {players.map((p, idx) => {
                 const isLeading = leadingIds.includes(p.id);
                 const isCurrent = !isEditMode && turnOrderEnabled && idx === currentPlayerIndex;
-                const filled = Object.keys(p.scores).length;
+                const filled = requiredCategories.filter(c => p.scores[c.id] !== undefined).length;
                 const rank   = rankMap.get(p.id) ?? 1;
                 return (
                   <th
@@ -243,10 +271,10 @@ export function Scoreboard({
                         </span>
                       </div>
                       <span className="player-header-meta">
-                        {rank}° · {filled}/{categories.length}
+                        {rank}° · {filled}/{requiredCategories.length}
                         <span
                           className="info-tip"
-                          title={`N° = posición · ${filled}/${categories.length} = jugadas completadas`}
+                          title={`N° = posición · ${filled}/${requiredCategories.length} = jugadas completadas`}
                         >i</span>
                       </span>
                     </div>
@@ -256,7 +284,7 @@ export function Scoreboard({
             </tr>
           </thead>
 
-          {isYahtzee ? (
+          {hasSections ? (
             <>
               <tbody>
                 <tr className="section-divider">
@@ -304,6 +332,24 @@ export function Scoreboard({
                   <td colSpan={players.length + 1}>Sección Inferior</td>
                 </tr>
                 {lowerCats.map(renderCategoryRow)}
+                {bonusCat && (
+                  <tr className="bonus-row">
+                    <td className="col-category col-label">{bonusCat.label}</td>
+                    {players.map((p, idx) => {
+                      const isCurrentCol = !isEditMode && turnOrderEnabled && idx === currentPlayerIndex;
+                      const v = p.scores['yahtzeeBonus']?.value ?? 0;
+                      return (
+                        <td
+                          key={p.id}
+                          className={`score-cell bonus-cell${v > 0 ? ' achieved' : ''}${isCurrentCol ? ' col-current' : ''}`}
+                          title="+100 por cada Yahtzee adicional luego del primero"
+                        >
+                          {v > 0 ? `+${v}` : '—'}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                )}
               </tbody>
             </>
           ) : (

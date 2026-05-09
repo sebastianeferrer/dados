@@ -9,7 +9,9 @@ function variantOf(r: GameRecord): GameVariant {
 }
 
 function variantLabel(v: GameVariant): string {
-  return v === 'yahtzee' ? 'Yahtzee' : 'Clásica';
+  if (v === 'yahtzee') return 'Generahtzee';
+  if (v === 'yahtzeeOriginal') return 'Yahtzee Original';
+  return 'Clásica';
 }
 
 interface Props {
@@ -271,9 +273,8 @@ export function HistoryScreen({ records, onBack, onClearHistory }: Props) {
               ? records
               : records.filter(r => variantOf(r) === rankingFilter);
             const ranking = computePlayerRanking(filteredRecords);
-            const hasMultipleVariants =
-              records.some(r => variantOf(r) === 'classic') &&
-              records.some(r => variantOf(r) === 'yahtzee');
+            const presentVariants = new Set(records.map(r => variantOf(r)));
+            const hasMultipleVariants = presentVariants.size > 1;
             return (
               <div className="player-ranking">
                 <div className="player-ranking-header">
@@ -284,14 +285,24 @@ export function HistoryScreen({ records, onBack, onClearHistory }: Props) {
                         className={`ranking-filter-btn${rankingFilter === 'all' ? ' is-active' : ''}`}
                         onClick={() => setRankingFilter('all')}
                       >Todas</button>
-                      <button
-                        className={`ranking-filter-btn${rankingFilter === 'classic' ? ' is-active' : ''}`}
-                        onClick={() => setRankingFilter('classic')}
-                      >Clásica</button>
-                      <button
-                        className={`ranking-filter-btn${rankingFilter === 'yahtzee' ? ' is-active' : ''}`}
-                        onClick={() => setRankingFilter('yahtzee')}
-                      >Yahtzee</button>
+                      {presentVariants.has('classic') && (
+                        <button
+                          className={`ranking-filter-btn${rankingFilter === 'classic' ? ' is-active' : ''}`}
+                          onClick={() => setRankingFilter('classic')}
+                        >Clásica</button>
+                      )}
+                      {presentVariants.has('yahtzee') && (
+                        <button
+                          className={`ranking-filter-btn${rankingFilter === 'yahtzee' ? ' is-active' : ''}`}
+                          onClick={() => setRankingFilter('yahtzee')}
+                        >Generahtzee</button>
+                      )}
+                      {presentVariants.has('yahtzeeOriginal') && (
+                        <button
+                          className={`ranking-filter-btn${rankingFilter === 'yahtzeeOriginal' ? ' is-active' : ''}`}
+                          onClick={() => setRankingFilter('yahtzeeOriginal')}
+                        >Yahtzee</button>
+                      )}
                     </div>
                   )}
                 </div>

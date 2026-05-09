@@ -2,9 +2,18 @@ export type CategoryId =
   | 'ones' | 'twos' | 'threes' | 'fours' | 'fives' | 'sixes'
   | 'escalera' | 'full' | 'poker' | 'generala' | 'generalaDoble'
   // Yahtzee-only:
-  | 'threeOfKind' | 'smallStreet' | 'largeStreet' | 'chance';
+  | 'threeOfKind' | 'smallStreet' | 'largeStreet' | 'chance'
+  // Yahtzee Original-only: acumulador de Yahtzees adicionales
+  | 'yahtzeeBonus';
 
-export type GameVariant = 'classic' | 'yahtzee';
+/**
+ * Variantes:
+ * - classic: Generala Clásica (11 categorías)
+ * - yahtzee: Generahtzee — híbrido Generala+Yahtzee (13 cat, bonus servida +5,
+ *   Trío, Generala Doble, escalera 1-3-4-5-6, Chance comodín)
+ * - yahtzeeOriginal: Yahtzee oficial (13 cat, sin servida, Yahtzee Bonus +100 acumulador)
+ */
+export type GameVariant = 'classic' | 'yahtzee' | 'yahtzeeOriginal';
 
 export interface ScoreEntry {
   value: number;

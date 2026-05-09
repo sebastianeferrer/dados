@@ -7,6 +7,7 @@ import { Scoreboard } from './components/Scoreboard';
 import { WinnerScreen } from './components/WinnerScreen';
 import { HistoryScreen } from './components/HistoryScreen';
 import { ThemeToggle } from './components/ThemeToggle';
+import { HelpModal } from './components/HelpModal';
 import type { Player, GameVariant, CategoryId, ScoreEntry, GameState } from './types/game';
 import type { GameRecord, PlayerRecord } from './types/history';
 import { isGameComplete, getWinner, getTotal, getRankingValue, computeCurrentPlayerIndex } from './games/generala';
@@ -48,6 +49,7 @@ function App() {
   const { theme, toggle } = useTheme();
   const [isEditMode, setIsEditMode]     = useState(false);
   const [showHistory, setShowHistory]   = useState(false);
+  const [showHelp, setShowHelp]         = useState(false);
   const savedGameIdRef = useRef<string | null>(null);
 
   // Save to history when game finishes (once per gameId)
@@ -148,6 +150,14 @@ function App() {
               <span className="history-badge">{records.length}</span>
             )}
           </button>
+          <button
+            className="btn btn-ghost btn-help"
+            onClick={() => setShowHelp(true)}
+            title="Reglas de los juegos"
+            aria-label="Ayuda"
+          >
+            ?
+          </button>
           <ThemeToggle theme={theme} onToggle={toggle} />
         </div>
       </header>
@@ -187,6 +197,13 @@ function App() {
           />
         )}
       </main>
+
+      {showHelp && (
+        <HelpModal
+          variant={state.phase === 'playing' ? state.variant : undefined}
+          onClose={() => setShowHelp(false)}
+        />
+      )}
     </div>
   );
 }
