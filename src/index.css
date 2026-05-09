@@ -1652,9 +1652,10 @@ html, body {
   height: 52px;
   position: relative;
   transform-style: preserve-3d;
+  transform: rotateX(0deg) rotateY(0deg); /* transform base: nunca queda sin transform */
   will-change: transform;
   backface-visibility: hidden;
-  -webkit-backface-visibility: hidden; /* fuerza capa GPU persistente en WebKit/Blink */
+  -webkit-backface-visibility: hidden;
 }
 
 .die-cube-face {

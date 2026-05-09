@@ -54,7 +54,9 @@ export function Die3D({ face, rolling, rollKey }: Props) {
         return;
       }
 
-      cube.style.transform = '';
+      // No limpiar cube.style.transform — la API de animación lo sobreescribe igual,
+      // y borrarlo causa que el elemento quede sin transform por un frame,
+      // lo que hace que el browser abandone la capa GPU y al recrearla produce el flash blanco.
       animRef.current = cube.animate(
         [
           { transform: 'rotateX(0deg)   rotateY(0deg)   rotateZ(0deg)' },
