@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import type { Player, GameVariant, CategoryId, ScoreEntry, SavedRoll } from '../types/game';
+import type { Player, GameVariant, CategoryId, ScoreEntry, SavedRoll, DieFace } from '../types/game';
 import {
   getCategories,
   getRequiredCategories,
@@ -35,6 +35,16 @@ interface Props {
   onWin: (winnerId: string, winReason: 'generalaServida') => void;
   onReorderPlayers: (players: Player[]) => void;
   onDisableTurnOrder: () => void;
+  gameId: string;
+  onRecordRoll?: (data: {
+    values: [DieFace, DieFace, DieFace, DieFace, DieFace];
+    rollNumber: 1 | 2 | 3;
+    playerName: string;
+    appliedCategory: CategoryId;
+    served: boolean;
+    variant: GameVariant;
+    gameId: string;
+  }) => void;
 }
 
 type LocalDialog =
@@ -54,6 +64,7 @@ function getLeadingIds(players: Player[], variant: GameVariant): string[] {
 export function Scoreboard({
   players, currentPlayerIndex, turnOrderEnabled, virtualDiceEnabled, variant, isEditMode,
   onScore, onDeleteScore, onWin, onReorderPlayers, onDisableTurnOrder,
+  gameId, onRecordRoll,
 }: Props) {
   const [dialog, setDialog] = useState<LocalDialog>(null);
   const [toast,  setToast]  = useState<{ msg: string; id: number } | null>(null);
@@ -115,6 +126,23 @@ export function Scoreboard({
     if (dialog?.kind !== 'score') return;
     const { playerId, categoryId, isEdit } = dialog;
     onScore(playerId, categoryId, entry);
+
+    // Record roll for stats (only new scores with virtual dice)
+    if (!isEdit && activeRoll && onRecordRoll) {
+      const player = players.find(p => p.id === playerId);
+      if (player) {
+        onRecordRoll({
+          values: activeRoll.values as [DieFace, DieFace, DieFace, DieFace, DieFace],
+          rollNumber: activeRoll.rollNumber,
+          playerName: player.name,
+          appliedCategory: categoryId,
+          served: entry.served,
+          variant,
+          gameId,
+        });
+      }
+    }
+
     if (!isEdit) setActiveRoll(null);
 
     // Yahtzee Original: si el tiro era un quinteto y ya hay un Yahtzee anotado ≥50,

@@ -1911,6 +1911,159 @@ html, body {
   color: var(--text);
 }
 
+/* ── Stats Screen ─────────────────────────────────────────── */
+
+.stats-screen {
+  overflow-y: auto;
+}
+
+.stats-filter-bar {
+  padding: 8px 16px 0;
+  flex-shrink: 0;
+}
+
+.stats-body {
+  padding: 12px 16px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.stats-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.stats-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 14px 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.stats-card-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.stats-card-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.stats-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stats-section-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text);
+}
+
+.stats-note {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.stats-note-center {
+  text-align: center;
+}
+
+.stats-footer-note {
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+/* Recharts tooltip override */
+.stats-tooltip {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 0.8125rem;
+  color: var(--text);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.stats-tooltip-label {
+  font-weight: 600;
+  margin: 0 0 4px;
+}
+
+.stats-tooltip p {
+  margin: 2px 0;
+}
+
+/* Recent trends list */
+.stats-recent {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.stats-recent-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.8125rem;
+}
+
+.stats-recent-dice {
+  display: flex;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.stats-recent-combo {
+  font-weight: 600;
+  min-width: 90px;
+}
+
+.combo-generala { color: var(--gold); }
+.combo-poker { color: var(--accent); }
+.combo-full { color: var(--success); }
+
+.stats-recent-served {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--success);
+  background: color-mix(in srgb, var(--success) 15%, transparent);
+  border-radius: 3px;
+  padding: 1px 4px;
+}
+
+.stats-recent-player {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  margin-left: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 80px;
+}
+
+/* Recharts overrides for dark mode */
+.recharts-cartesian-grid-bg { fill: transparent; }
+
 /* ── Responsive tweaks ─────────────────────────────────────── */
 @media (max-width: 480px) {
   .setup-container { padding: 32px 16px 24px; }

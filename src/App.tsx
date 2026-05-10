@@ -6,11 +6,14 @@ import { PlayerSetup } from './components/PlayerSetup';
 import { Scoreboard } from './components/Scoreboard';
 import { WinnerScreen } from './components/WinnerScreen';
 import { HistoryScreen } from './components/HistoryScreen';
+import { StatsScreen } from './components/StatsScreen';
 import { ThemeToggle } from './components/ThemeToggle';
 import { HelpModal } from './components/HelpModal';
-import type { Player, GameVariant, CategoryId, ScoreEntry, GameState } from './types/game';
+import type { Player, GameVariant, CategoryId, ScoreEntry, GameState, DieFace } from './types/game';
 import type { GameRecord, PlayerRecord } from './types/history';
 import { isGameComplete, getWinner, getTotal, getRankingValue, computeCurrentPlayerIndex } from './games/generala';
+import { useRollStats } from './hooks/useRollStats';
+import { detectCombination } from './games/detectCombination';
 
 function buildRecord(state: GameState): GameRecord {
   const finishedAt = new Date().toISOString();
@@ -46,9 +49,11 @@ function buildRecord(state: GameState): GameRecord {
 function App() {
   const { state, dispatch } = useGameState();
   const { records, addRecord, clearHistory } = useHistory();
+  const { rolls, addRoll, clearStats, getRolls, getSessionRolls } = useRollStats();
   const { theme, toggle } = useTheme();
   const [isEditMode, setIsEditMode]     = useState(false);
   const [showHistory, setShowHistory]   = useState(false);
+  const [showStats, setShowStats]       = useState(false);
   const [showHelp, setShowHelp]         = useState(false);
   const savedGameIdRef = useRef<string | null>(null);
 
@@ -91,18 +96,32 @@ function App() {
   const handleReorderPlayers = (players: Player[]) => dispatch({ type: 'REORDER_PLAYERS', players });
   const handleDisableTurnOrder = () => dispatch({ type: 'DISABLE_TURN_ORDER' });
 
+  const handleRecordRoll = (data: {
+    values: [DieFace, DieFace, DieFace, DieFace, DieFace];
+    rollNumber: 1 | 2 | 3;
+    playerName: string;
+    appliedCategory: CategoryId;
+    served: boolean;
+    variant: GameVariant;
+    gameId: string;
+  }) => {
+    addRoll({ ...data, combination: detectCombination(data.values) });
+  };
+
   const handleReset = () => {
     if (state.phase === 'playing' && !isEditMode) {
       if (!window.confirm('¿Abandonar la partida en curso?')) return;
     }
     setIsEditMode(false);
     setShowHistory(false);
+    setShowStats(false);
     dispatch({ type: 'RESET_GAME' });
   };
 
   const handleReopenGame = () => {
     setIsEditMode(true);
     setShowHistory(false);
+    setShowStats(false);
     dispatch({ type: 'REOPEN_GAME' });
   };
 
@@ -143,11 +162,20 @@ function App() {
           )}
           <button
             className={`btn ${showHistory ? 'btn-secondary' : 'btn-ghost'}`}
-            onClick={() => setShowHistory(v => !v)}
+            onClick={() => { setShowHistory(v => !v); setShowStats(false); }}
           >
             Historial
             {records.length > 0 && (
               <span className="history-badge">{records.length}</span>
+            )}
+          </button>
+          <button
+            className={`btn ${showStats ? 'btn-secondary' : 'btn-ghost'}`}
+            onClick={() => { setShowStats(v => !v); setShowHistory(false); }}
+          >
+            Stats
+            {rolls.length > 0 && (
+              <span className="history-badge">{rolls.length}</span>
             )}
           </button>
           <button
@@ -163,7 +191,14 @@ function App() {
       </header>
 
       <main className="app-main">
-        {showHistory ? (
+        {showStats ? (
+          <StatsScreen
+            rolls={getRolls()}
+            sessionRolls={getSessionRolls()}
+            onBack={() => setShowStats(false)}
+            onClearStats={clearStats}
+          />
+        ) : showHistory ? (
           <HistoryScreen
             records={records}
             onBack={() => setShowHistory(false)}
@@ -184,6 +219,8 @@ function App() {
             onWin={handleWin}
             onReorderPlayers={handleReorderPlayers}
             onDisableTurnOrder={handleDisableTurnOrder}
+            gameId={state.gameId}
+            onRecordRoll={handleRecordRoll}
           />
         ) : (
           <WinnerScreen
